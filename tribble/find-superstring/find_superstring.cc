@@ -120,7 +120,7 @@ void sort_strings_by_length(
 
 	// Move the results.
 	sorted_bwt_indices = std::move(sorted_bwt_indices_t);
-	string_lengths = std::move(string_lenghts_t);
+	string_lengths = std::move(string_lengths_t);
 }
 
 
@@ -137,7 +137,7 @@ void find_superstring_with_sorted(
 	while (0 < i)
 	{
 		// Take the longest string.
-		auto const bwt_idx(bwt_indices[i - 1]);
+		auto const bwt_idx(sorted_substrings[i - 1]);
 		auto const substring_length(string_lengths[i - 1]);
 
 		// Find the corresponding leaf in the CST and remove the sentinel.
