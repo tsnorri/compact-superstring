@@ -27,7 +27,7 @@ typedef ios::stream <ios::file_descriptor_source> source_stream_type;
 
 int open_file(char const *fname)
 {
-	int fd(open(fname, O_RDONLY | O_SHLOCK));
+	int fd(open(fname, O_RDONLY));
 	if (-1 == fd)
 		handle_error();
 	return fd;

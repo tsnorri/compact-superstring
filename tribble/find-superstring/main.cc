@@ -59,7 +59,7 @@ void open_source_file_and_execute(gengetopt_args_info const &args_info, std::fun
 {
 	if (args_info.source_file_given)
 	{
-		int fd(open(args_info.source_file_arg, O_RDONLY | O_SHLOCK));
+		int fd(open(args_info.source_file_arg, O_RDONLY));
 		if (-1 == fd)
 			handle_error();
 		ios::stream <ios::file_descriptor_source> source_stream(fd, ios::close_handle);
