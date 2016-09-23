@@ -1,3 +1,10 @@
+# Local make variables
+local.mk
+
+# Profiler files
+*.gcda
+*.gcno
+
 # Compiled Object files
 *.slo
 *.lo
