@@ -63,6 +63,7 @@ public:
 	{
 		// Output the final sentinel.
 		*m_output_stream << m_sentinel;
+		m_output_stream->flush();
 
 		// Read the sequence from the file.
 		std::cerr << "Creating the CST…" << std::endl;
