@@ -23,8 +23,8 @@
 
 typedef sdsl::cst_sct3 <> cst_type;
 
-extern "C" void create_index(std::istream &source_stream);
-extern "C" void find_superstring(char const *source_fname);
+extern "C" void create_index(std::istream &source_stream, char const sentinel);
+extern "C" void find_superstring(char const *source_fname, char const sentinel);
 extern "C" void handle_error();
 
 #endif

@@ -42,16 +42,13 @@ void sort_strings_by_length(
 )
 {
 	// Store the lexicographic range of the sentinel character.
-	// Remove the first instance as it points to the beginning of the
-	// concatenated string.
-	cst_type::csa_type::size_type left(0), right(csa.size());
+	cst_type::csa_type::size_type left(0), right(csa.size() - 1);
 	auto string_count(sdsl::backward_search(csa, left, right, sentinel, left, right));
 	assert(string_count);
-	--string_count;
 
 	// Store a jump table for looping the lexicographic range
 	// using O(m log m) bits, one-based.
-	std::size_t bits_for_m(1 + sdsl::bits::hi(string_count));
+	std::size_t bits_for_m(1 + sdsl::bits::hi(1 + string_count));
 	sdsl::int_vector <> jump(1 + string_count, 0, bits_for_m);
 
 	// Store the lexicographic indices of the $ characters ordered by
@@ -74,34 +71,40 @@ void sort_strings_by_length(
 		std::size_t i(0);
 		while (left + i <= right)
 		{
-			assert(left + i < 1 << (bits_for_n - 1));
-			assert(i < 1 << (bits_for_m - 1));
+			assert(left + i < ~(~0ULL << bits_for_n));
+			assert(i < ~(~0ULL << bits_for_m));
 			bwt_indices[i] = left + i;
 			jump[i + 1] = i + 1; // jump is one-based.
 
 			++i;
 		}
 	}
-
+	
 	// Repeatedly iterate the BWT indices to count the string lengths.
 	std::size_t sorted_bwt_ptr(0);
 	std::size_t length(0);
 	while (jump[0] < string_count)
 	{
-		std::size_t idx(jump[0]);
-		while (idx < string_count)
+		std::size_t j_idx(0);								// Jump table index.
+		std::size_t j_val(jump[j_idx]);						// Jump table value.
+		while (j_val < string_count)
 		{
-			// Jump table is 1-based.
-			std::size_t const next_idx(jump[1 + idx]);
-
-			auto const bwt_idx(bwt_indices[idx]);
-			auto const lf(csa.lf[bwt_idx]);
-			auto const c(csa.comp2char[lf]);
-
-			if (sentinel == c)
+			std::size_t const next_j_idx(1 + jump[j_idx]);	// Next jump table index.
+			std::size_t const next_j_val(jump[next_j_idx]);	// Next jump table value.
+			
+			auto const bwt_val(bwt_indices[j_val]);
+			auto const lf(csa.lf[bwt_val]);
+			auto const c(csa.bwt[bwt_val]);
+			
+			if (0 == c)
+			{
+				// Found the first separator. Don't follow it.
+				jump[j_idx] = next_j_val;
+			}
+			else if (sentinel == c)
 			{
 				// End of the substring was reached, push to the stack.
-				jump[idx] = next_idx;
+				jump[j_idx] = next_j_val;
 				sorted_bwt_indices_t[sorted_bwt_ptr] = lf;
 				string_lengths_t[sorted_bwt_ptr] = length;
 				++sorted_bwt_ptr;
@@ -109,10 +112,12 @@ void sort_strings_by_length(
 			else
 			{
 				// Advance to the previous character.
-				bwt_indices[idx] = lf;
+				bwt_indices[j_val] = lf;
 			}
-
-			idx = next_idx;
+			
+			// Advance the pointers.
+			j_idx = next_j_idx;
+			j_val = jump[j_idx];
 		}
 
 		++length;
@@ -177,10 +182,9 @@ void find_superstring_with_sorted(
 }
 
 
-void find_superstring(char const *source_fname)
+void find_superstring(char const *source_fname, char const sentinel)
 {
 	cst_type cst;
-	char sentinel('#');
 
 	// Load the CST.
 	std::cerr << "Loading the CST…" << std::endl;

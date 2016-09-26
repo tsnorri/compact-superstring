@@ -84,11 +84,11 @@ int main(int argc, char **argv)
 	// Check the mode and execute.
 	if (args_info.create_index_given)
 	{
-		open_source_file_and_execute(args_info, [](std::istream &istream){ create_index(istream); });
+		open_source_file_and_execute(args_info, [](std::istream &istream){ create_index(istream, '#'); });
 	}
 	else if (args_info.find_superstring_given)
 	{
-		find_superstring(args_info.source_file_given ? args_info.source_file_arg : nullptr);
+		find_superstring(args_info.source_file_given ? args_info.source_file_arg : nullptr, '#');
 	}
 	else
 	{

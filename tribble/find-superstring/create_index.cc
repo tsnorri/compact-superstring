@@ -77,7 +77,7 @@ public:
 };
 
 
-void create_index(std::istream &source_stream)
+void create_index(std::istream &source_stream, char const sentinel)
 {
 	// SDSL reads the whole string from a file so copy the contents without the newlines
 	// into a temporary file, then create the index.
@@ -92,7 +92,7 @@ void create_index(std::istream &source_stream)
 		tribble::vector_source vs(1, false);
 		tribble::fasta_reader <create_index_cb, 10 * 1024 * 1024> reader;
 		ios::stream <ios::file_descriptor_sink> output_stream(temp_fd, ios::close_handle);
-		create_index_cb cb(temp_fname, output_stream);
+		create_index_cb cb(temp_fname, output_stream, sentinel);
 
 		reader.read_from_stream(source_stream, vs, cb);
 	}
