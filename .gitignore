@@ -1,3 +1,8 @@
+# Products
+tribble/find-superstring/cmdline.c
+tribble/find-superstring/cmdline.h
+tribble/find-superstring/find-superstring
+
 # Local make variables
 local.mk
 
