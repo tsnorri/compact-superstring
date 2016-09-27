@@ -54,14 +54,14 @@ void sort_strings_by_length(
 	// Store the lexicographic indices of the $ characters ordered by
 	// substring lengths using O(m log n) bits.
 	std::size_t bits_for_n(1 + sdsl::bits::hi(csa.size()));
-	sdsl::int_vector <> sorted_bwt_indices_t(string_count, 0, bits_for_n);
+	sdsl::int_vector <> sorted_bwt_indices_t(string_count - 1, 0, bits_for_n);
 
 	// Store the lexicographic indices of the $ characters in
 	// BWT order using O(m log n) bits.
 	sdsl::int_vector <> bwt_indices(string_count, 0, bits_for_n);
 
-	// Also store the string lengths using O(m log m) bits.
-	sdsl::int_vector <> string_lengths_t(string_count, 0, bits_for_m);
+	// Also store the string lengths using O(m log n) bits.
+	sdsl::int_vector <> string_lengths_t(string_count - 1, 0, bits_for_n);
 
 	// FIXME: consider using additional O(m log n) bits for storing the
 	// lexicographic ranks where the interval first has length one in
@@ -146,25 +146,36 @@ void find_superstring_with_sorted(
 		auto const substring_length(string_lengths[i - 1]);
 
 		// Find the corresponding leaf in the CST and remove the sentinel.
-		auto const leaf(cst.select_leaf(bwt_idx));
+		auto const leaf(cst.select_leaf(1 + bwt_idx));
 		auto node(cst.sl(leaf));
-
+		
 		// Follow the suffix links until the string depth of the parent node
 		// is exactly the same as the number of characters left. In this case,
-		// the first character of the label of the edge to the leaf should
+		// the first character of the label of the edge towards the leaf should
 		// be the sentinel, in which case there must be at least one suffix
 		// the next character of which is not the sentinel. This is a potential
-		// match.
+		// match. In order to find the highest node, try to ascend in the tree
+		// as long as the string depth of the current node is still greater than
+		// the length of the string in question.
 		std::size_t length(0);
 		while (node != root)
 		{
 			// sl() may be used initially twice since the strings are not
 			// substrings of each other.
-			node = cst.sl(leaf);						// O(rrenclose) time.
+			node = cst.sl(node);						// O(rrenclose) time.
 			auto parent(cst.parent(node));				// O(1) time in cst_sct3.
-			auto const string_depth(cst.depth(parent));	// O(1) time in cst_sct3 since non-leaf.
+			auto string_depth(cst.depth(parent));		// O(1) time in cst_sct3 since non-leaf.
+			
+			// Ascend if possible.
+			// FIXME: time complexity? Do we get the worst case of implicit suffix links?
+			while (1 + string_depth > substring_length - length)
+			{
+				node = parent;
+				parent = cst.parent(node);
+				string_depth = cst.depth(parent);
+			}
 
-			if (string_depth == substring_length - length)
+			if (1 + string_depth == substring_length - length)
 			{
 				// Potential match, try to follow the Weiner link.
 				auto const match_node(cst.wl(parent, sentinel));	// O(t_rank_BWT) time.
@@ -173,6 +184,7 @@ void find_superstring_with_sorted(
 					assert(cst.edge(node, 1 + string_depth) == sentinel);	// edge takes potentially more time so just verify.
 					// A match was found.
 					// FIXME: report.
+					break;
 				}
 			}
 			++length;
