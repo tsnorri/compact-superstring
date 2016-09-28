@@ -18,6 +18,7 @@
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream.hpp>
 #include "find_superstring.hh"
+#include "node_array.hh"
 
 namespace ios = boost::iostreams;
 
@@ -38,6 +39,7 @@ void sort_strings_by_length(
 	cst_type::csa_type const &csa,
 	char const sentinel,
 	/* out */ sdsl::int_vector <> &sorted_bwt_indices,
+	/* out */ sdsl::int_vector <> &sorted_bwt_start_indices,
 	/* out */ sdsl::int_vector <> &string_lengths
 )
 {
@@ -52,13 +54,17 @@ void sort_strings_by_length(
 	sdsl::int_vector <> jump(1 + string_count, 0, bits_for_m);
 
 	// Store the lexicographic indices of the $ characters ordered by
-	// substring lengths using O(m log n) bits.
+	// substring lengths twice (to be able to report the start of each match)
+	// using O(m log n) bits each.
 	std::size_t bits_for_n(1 + sdsl::bits::hi(csa.size()));
 	sdsl::int_vector <> sorted_bwt_indices_t(string_count - 1, 0, bits_for_n);
+	sdsl::int_vector <> sorted_bwt_start_indices_t = sorted_bwt_indices_t; // Copy.
 
-	// Store the lexicographic indices of the $ characters in
-	// BWT order using O(m log n) bits.
-	sdsl::int_vector <> bwt_indices(string_count, 0, bits_for_n);
+	// Store the lexicographic indices of the $ characters twice
+	// (to be able to report the start of each match)
+	// in BWT order using O(m log n) bits each.
+	sdsl::int_vector <> bwt_indices(string_count, 0, bits_for_n); // Filled later.
+	sdsl::int_vector <> bwt_start_indices;
 
 	// Also store the string lengths using O(m log n) bits.
 	sdsl::int_vector <> string_lengths_t(string_count - 1, 0, bits_for_n);
@@ -78,6 +84,9 @@ void sort_strings_by_length(
 
 			++i;
 		}
+		
+		// Copy.
+		bwt_start_indices = bwt_indices;
 	}
 	
 	// Repeatedly iterate the BWT indices to count the string lengths.
@@ -106,6 +115,7 @@ void sort_strings_by_length(
 				// End of the substring was reached, push to the stack.
 				jump[j_idx] = next_j_val;
 				sorted_bwt_indices_t[sorted_bwt_ptr] = lf;
+				sorted_bwt_start_indices_t[sorted_bwt_ptr] = bwt_start_indices[j_val];
 				string_lengths_t[sorted_bwt_ptr] = length;
 				++sorted_bwt_ptr;
 			}
@@ -124,8 +134,9 @@ void sort_strings_by_length(
 	}
 
 	// Move the results.
-	sorted_bwt_indices = std::move(sorted_bwt_indices_t);
-	string_lengths = std::move(string_lengths_t);
+	sorted_bwt_indices			= std::move(sorted_bwt_indices_t);
+	sorted_bwt_start_indices	= std::move(sorted_bwt_start_indices_t);
+	string_lengths				= std::move(string_lengths_t);
 }
 
 
@@ -133,68 +144,86 @@ void find_superstring_with_sorted(
 	cst_type const &cst,
 	char const sentinel,
 	sdsl::int_vector <> const &sorted_substrings,
-	sdsl::int_vector <> const &string_lengths
+	sdsl::int_vector <> const &sorted_substring_start_indices,
+	sdsl::int_vector <> const &string_lengths,
+	find_superstring_match_callback &match_callback
 )
 {
+	assert(sorted_substrings.size() == sorted_substring_start_indices.size());
+	assert(sorted_substrings.size() == string_lengths.size());
+	
 	auto const root(cst.root());
 	auto const string_count(sorted_substrings.size());
-	auto i(string_count);
-	while (0 < i)
+	auto const max_length(string_lengths[string_count - 1]);
+	
+	// Use O(m log n) bits for the nodes.
+	node_array <cst_type::size_type> sorted_nodes(string_count, cst.size());
+	
 	{
-		// Take the longest string.
-		auto const bwt_idx(sorted_substrings[i - 1]);
-		auto const substring_length(string_lengths[i - 1]);
-
-		// Find the corresponding leaf in the CST and remove the sentinel.
-		auto const leaf(cst.select_leaf(1 + bwt_idx));
-		auto node(cst.sl(leaf));
-		
-		// Follow the suffix links until the string depth of the parent node
-		// is exactly the same as the number of characters left. In this case,
-		// the first character of the label of the edge towards the leaf should
-		// be the sentinel, in which case there must be at least one suffix
-		// the next character of which is not the sentinel. This is a potential
-		// match. In order to find the highest node, try to ascend in the tree
-		// as long as the string depth of the current node is still greater than
-		// the length of the string in question.
-		std::size_t length(0);
-		while (node != root)
+		std::size_t i(0);
+		for (auto const idx : sorted_substrings)
 		{
-			// sl() may be used initially twice since the strings are not
-			// substrings of each other.
-			node = cst.sl(node);						// O(rrenclose) time.
-			auto parent(cst.parent(node));				// O(1) time in cst_sct3.
-			auto string_depth(cst.depth(parent));		// O(1) time in cst_sct3 since non-leaf.
+			auto const node(cst.select_leaf(1 + idx));
+			sorted_nodes.set(i, node);
+			++i;
+		}
+	}
+	
+	// Follow the suffix links until the string depth of the parent node
+	// is exactly the same as the number of characters left. In this case,
+	// the first character of the label of the edge towards the leaf should
+	// be the sentinel, in which case there must be at least one suffix
+	// the next character of which is not the sentinel. This is a potential
+	// match. In order to find the highest node, try to ascend in the tree
+	// as long as the string depth of the current node is still greater than
+	// the length of the string in question.
+	for (std::size_t cl(0); cl < max_length; ++cl) // Current discarded prefix length w.r.t. the longest substring.
+	{
+		auto const remaining_suffix_length(max_length - cl);
+		
+		// Iterate the range where the strings have equal lengths.
+		// FIXME: consider using a pointerless linked list such as the one in sort_strings_by_length.
+		for (auto i(string_count); 0 < i && remaining_suffix_length <= string_lengths[i - 1]; --i)
+		{
+			// Follow one suffix link for each node on one iteration of the outer loop.
+			
+			auto const substring_length(string_lengths[i - 1]);
+			auto node(sorted_nodes.get(i - 1));
+			node = cst.sl(node);							// O(rrenclose) time.
+			auto parent(cst.parent(node));					// O(1) time in cst_sct3.
+			auto parent_string_depth(cst.depth(parent));	// O(1) time in cst_sct3 since non-leaf.
 			
 			// Ascend if possible.
 			// FIXME: time complexity? Do we get the worst case of implicit suffix links?
-			while (1 + string_depth > substring_length - length)
+			while (remaining_suffix_length < parent_string_depth)
 			{
 				node = parent;
 				parent = cst.parent(node);
-				string_depth = cst.depth(parent);
+				parent_string_depth = cst.depth(parent);
 			}
 
-			if (1 + string_depth == substring_length - length)
+			if (remaining_suffix_length == parent_string_depth)
 			{
 				// Potential match, try to follow the Weiner link.
 				auto const match_node(cst.wl(parent, sentinel));	// O(t_rank_BWT) time.
 				if (root != match_node)
 				{
-					assert(cst.edge(node, 1 + string_depth) == sentinel);	// edge takes potentially more time so just verify.
-					// A match was found.
-					// FIXME: report.
-					break;
+					assert(cst.edge(node, 1 + parent_string_depth) == sentinel);	// edge takes potentially more time so just verify.
+					
+					// A match was found
+					match_callback(sorted_substrings[i - 1], remaining_suffix_length, cst.lb(match_node), cst.rb(match_node));
+					// FIXME: check the return value, remove the substring that has the matching suffix from the linked list if true.
+					// (This is sufficient since the list will only be used for finding suffix matches.)
 				}
 			}
-			++length;
+			
+			sorted_nodes.set(i - 1, node);
 		}
-		--i;
 	}
 }
 
 
-void find_superstring(char const *source_fname, char const sentinel)
+void find_superstring(char const *source_fname, char const sentinel, find_superstring_match_callback cb)
 {
 	cst_type cst;
 
@@ -215,11 +244,19 @@ void find_superstring(char const *source_fname, char const sentinel)
 	// Find the superstring.
 	// Sort the strings by length.
 	sdsl::int_vector <> sorted_substrings;
+	sdsl::int_vector <> sorted_substring_start_indices;
 	sdsl::int_vector <> substring_lengths;
 
 	std::cerr << "Sorting strings…" << std::endl;
-	sort_strings_by_length(cst.csa, sentinel, sorted_substrings, substring_lengths);
+	sort_strings_by_length(cst.csa, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
 
 	std::cerr << "Finding matches…" << std::endl;
-	find_superstring_with_sorted(cst, sentinel, sorted_substrings, substring_lengths);
+	find_superstring_with_sorted(
+		cst,
+		sentinel,
+		sorted_substrings,
+		sorted_substring_start_indices,
+		substring_lengths,
+		cb
+	);
 }

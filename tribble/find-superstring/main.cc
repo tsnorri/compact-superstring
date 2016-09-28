@@ -88,7 +88,14 @@ int main(int argc, char **argv)
 	}
 	else if (args_info.find_superstring_given)
 	{
-		find_superstring(args_info.source_file_given ? args_info.source_file_arg : nullptr, '#');
+		auto cb = [](std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) -> bool {
+			std::cerr
+				<< "Found match for substring " << read_lex_rank << " of length " << match_length
+				<< ": [" << match_sa_begin << ", " << match_sa_end << "]" << std::endl;
+			return false;
+		};
+
+		find_superstring(args_info.source_file_given ? args_info.source_file_arg : nullptr, '#', cb);
 	}
 	else
 	{
