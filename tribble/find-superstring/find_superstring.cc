@@ -52,7 +52,7 @@ void find_superstring_with_sorted(
 	auto const max_length(string_lengths[string_count - 1]);
 	
 	// Use O(m log n) bits for the nodes.
-	node_array <cst_type::size_type> sorted_nodes(string_count, cst.size());
+	tribble::node_array <cst_type::size_type> sorted_nodes(string_count, cst.size());
 	
 	{
 		std::size_t i(0);

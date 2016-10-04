@@ -24,52 +24,56 @@
 // five integers, the values are stored column-wise in order to
 // achieve O(m log n) space complexity where n is the suffix array
 // size and m is the number of stored items.
-template <typename t_int>
-class node_array
-{
-public:
-	typedef sdsl::bp_interval <t_int> node_type;
-	
-protected:
-	sdsl::int_vector <> m_i;		// LCP interval
-	sdsl::int_vector <> m_j;		// LCP interval
-	sdsl::int_vector <> m_ipos;		// BPS
-	sdsl::int_vector <> m_cipos;	// BPS
-	sdsl::int_vector <> m_jp1pos;	// BPS
-	
-protected:
-	static std::size_t bits_for_n(std::size_t const n)
+namespace tribble {
+
+	template <typename t_int>
+	class node_array
 	{
-		return 1 + sdsl::bits::hi(n);
-	}
-	
-	static std::size_t bits_for_2n(std::size_t const n)
-	{
-		return 1 + sdsl::bits::hi(2 * n);
-	}
-	
-public:
-	node_array(std::size_t const count, std::size_t const n):
-		m_i(count, 0, bits_for_n(n)),
-		m_j(count, 0, bits_for_n(n)),
-		m_ipos(count, 0, bits_for_2n(n)),
-		m_cipos(count, 0, bits_for_2n(n)),
-		m_jp1pos(count, 0, bits_for_2n(n))
-	{
-	}
-	
-	node_type get(std::size_t const i) const
-	{
-		node_type retval(m_i[i], m_j[i], m_ipos[i], m_cipos[i], m_jp1pos[i]);
-		return retval;
-	}
-	
-	void set(std::size_t const i, node_type const &node)
-	{
-		m_i[i] = node.i;
-		m_j[i] = node.j;
-		m_ipos[i] = node.ipos;
-		m_cipos[i] = node.cipos;
-		m_jp1pos[i] = node.jp1pos;
-	}
-};
+	public:
+		typedef sdsl::bp_interval <t_int> node_type;
+		
+	protected:
+		sdsl::int_vector <> m_i;		// LCP interval
+		sdsl::int_vector <> m_j;		// LCP interval
+		sdsl::int_vector <> m_ipos;		// BPS
+		sdsl::int_vector <> m_cipos;	// BPS
+		sdsl::int_vector <> m_jp1pos;	// BPS
+		
+	protected:
+		static std::size_t bits_for_n(std::size_t const n)
+		{
+			return 1 + sdsl::bits::hi(n);
+		}
+		
+		static std::size_t bits_for_2n(std::size_t const n)
+		{
+			return 1 + sdsl::bits::hi(2 * n);
+		}
+		
+	public:
+		node_array(std::size_t const count, std::size_t const n):
+			m_i(count, 0, bits_for_n(n)),
+			m_j(count, 0, bits_for_n(n)),
+			m_ipos(count, 0, bits_for_2n(n)),
+			m_cipos(count, 0, bits_for_2n(n)),
+			m_jp1pos(count, 0, bits_for_2n(n))
+		{
+		}
+		
+		node_type get(std::size_t const i) const
+		{
+			node_type retval(m_i[i], m_j[i], m_ipos[i], m_cipos[i], m_jp1pos[i]);
+			return retval;
+		}
+		
+		void set(std::size_t const i, node_type const &node)
+		{
+			m_i[i] = node.i;
+			m_j[i] = node.j;
+			m_ipos[i] = node.ipos;
+			m_cipos[i] = node.cipos;
+			m_jp1pos[i] = node.jp1pos;
+		}
+	};
+}
+
