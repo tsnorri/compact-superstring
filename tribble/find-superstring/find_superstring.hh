@@ -21,6 +21,11 @@
 #include <istream>
 #include <sdsl/cst_sct3.hpp>
 
+#ifndef DEBUGGING_OUTPUT
+#define DEBUGGING_OUTPUT 0
+#endif
+
+// FIXME: check that the LCP structure is the most suitable one.
 typedef sdsl::cst_sct3 <> cst_type;
 
 typedef std::function <
@@ -33,6 +38,13 @@ typedef std::function <
 > find_superstring_match_callback;
 
 extern "C" void create_index(std::istream &source_stream, char const sentinel);
+extern "C" void sort_strings_by_length(
+	cst_type const &cst,
+	char const sentinel,
+	/* out */ sdsl::int_vector <> &sorted_bwt_indices,
+	/* out */ sdsl::int_vector <> &sorted_bwt_start_indices,
+	/* out */ sdsl::int_vector <> &string_lengths
+);
 extern "C" void find_superstring(char const *source_fname, char const sentinel, find_superstring_match_callback cb);
 extern "C" void handle_error();
 

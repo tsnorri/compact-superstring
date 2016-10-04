@@ -4,11 +4,13 @@ include ../../common.mk
 TARGET			=	find-superstring
 
 LDFLAGS			+=	-lboost_iostreams-mt
+CPPFLAGS		+=	-DDEBUGGING_OUTPUT
 
 OBJECTS			=	main.o \
 					cmdline.o \
 					create_index.o \
 					find_superstring.o \
+					sort_strings.o \
 					vector_source.o
 
 

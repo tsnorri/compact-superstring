@@ -35,111 +35,6 @@ int open_file(char const *fname)
 }
 
 
-void sort_strings_by_length(
-	cst_type::csa_type const &csa,
-	char const sentinel,
-	/* out */ sdsl::int_vector <> &sorted_bwt_indices,
-	/* out */ sdsl::int_vector <> &sorted_bwt_start_indices,
-	/* out */ sdsl::int_vector <> &string_lengths
-)
-{
-	// Store the lexicographic range of the sentinel character.
-	cst_type::csa_type::size_type left(0), right(csa.size() - 1);
-	auto string_count(sdsl::backward_search(csa, left, right, sentinel, left, right));
-	assert(string_count);
-
-	// Store a jump table for looping the lexicographic range
-	// using O(m log m) bits, one-based.
-	std::size_t bits_for_m(1 + sdsl::bits::hi(1 + string_count));
-	sdsl::int_vector <> jump(1 + string_count, 0, bits_for_m);
-
-	// Store the lexicographic indices of the $ characters ordered by
-	// substring lengths twice (to be able to report the start of each match)
-	// using O(m log n) bits each.
-	std::size_t bits_for_n(1 + sdsl::bits::hi(csa.size()));
-	sdsl::int_vector <> sorted_bwt_indices_t(string_count - 1, 0, bits_for_n);
-	sdsl::int_vector <> sorted_bwt_start_indices_t = sorted_bwt_indices_t; // Copy.
-
-	// Store the lexicographic indices of the $ characters twice
-	// (to be able to report the start of each match)
-	// in BWT order using O(m log n) bits each.
-	sdsl::int_vector <> bwt_indices(string_count, 0, bits_for_n); // Filled later.
-	sdsl::int_vector <> bwt_start_indices;
-
-	// Also store the string lengths using O(m log n) bits.
-	sdsl::int_vector <> string_lengths_t(string_count - 1, 0, bits_for_n);
-
-	// FIXME: consider using additional O(m log n) bits for storing the
-	// lexicographic ranks where the interval first has length one in
-	// order to reduce the number of sl() operations needed.
-
-	{
-		std::size_t i(0);
-		while (left + i <= right)
-		{
-			assert(left + i < ~(~0ULL << bits_for_n));
-			assert(i < ~(~0ULL << bits_for_m));
-			bwt_indices[i] = left + i;
-			jump[i + 1] = i + 1; // jump is one-based.
-
-			++i;
-		}
-		
-		// Copy.
-		bwt_start_indices = bwt_indices;
-	}
-	
-	// Repeatedly iterate the BWT indices to count the string lengths.
-	std::size_t sorted_bwt_ptr(0);
-	std::size_t length(0);
-	while (jump[0] < string_count)
-	{
-		std::size_t j_idx(0);								// Jump table index.
-		std::size_t j_val(jump[j_idx]);						// Jump table value.
-		while (j_val < string_count)
-		{
-			std::size_t const next_j_idx(1 + jump[j_idx]);	// Next jump table index.
-			std::size_t const next_j_val(jump[next_j_idx]);	// Next jump table value.
-			
-			auto const bwt_val(bwt_indices[j_val]);
-			auto const lf(csa.lf[bwt_val]);
-			auto const c(csa.bwt[bwt_val]);
-			
-			if (0 == c)
-			{
-				// Found the first separator. Don't follow it.
-				jump[j_idx] = next_j_val;
-			}
-			else if (sentinel == c)
-			{
-				// End of the substring was reached, push to the stack.
-				jump[j_idx] = next_j_val;
-				sorted_bwt_indices_t[sorted_bwt_ptr] = lf;
-				sorted_bwt_start_indices_t[sorted_bwt_ptr] = bwt_start_indices[j_val];
-				string_lengths_t[sorted_bwt_ptr] = length;
-				++sorted_bwt_ptr;
-			}
-			else
-			{
-				// Advance to the previous character.
-				bwt_indices[j_val] = lf;
-			}
-			
-			// Advance the pointers.
-			j_idx = next_j_idx;
-			j_val = jump[j_idx];
-		}
-
-		++length;
-	}
-
-	// Move the results.
-	sorted_bwt_indices			= std::move(sorted_bwt_indices_t);
-	sorted_bwt_start_indices	= std::move(sorted_bwt_start_indices_t);
-	string_lengths				= std::move(string_lengths_t);
-}
-
-
 void find_superstring_with_sorted(
 	cst_type const &cst,
 	char const sentinel,
@@ -211,7 +106,7 @@ void find_superstring_with_sorted(
 					assert(cst.edge(node, 1 + parent_string_depth) == sentinel);	// edge takes potentially more time so just verify.
 					
 					// A match was found
-					match_callback(sorted_substrings[i - 1], remaining_suffix_length, cst.lb(match_node), cst.rb(match_node));
+					match_callback(sorted_substring_start_indices[i - 1], remaining_suffix_length, cst.lb(match_node), cst.rb(match_node));
 					// FIXME: check the return value, remove the substring that has the matching suffix from the linked list if true.
 					// (This is sufficient since the list will only be used for finding suffix matches.)
 				}
@@ -248,7 +143,7 @@ void find_superstring(char const *source_fname, char const sentinel, find_supers
 	sdsl::int_vector <> substring_lengths;
 
 	std::cerr << "Sorting strings…" << std::endl;
-	sort_strings_by_length(cst.csa, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
+	sort_strings_by_length(cst, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
 
 	std::cerr << "Finding matches…" << std::endl;
 	find_superstring_with_sorted(
