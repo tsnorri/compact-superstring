@@ -26,7 +26,8 @@
 #endif
 
 // FIXME: check that the LCP structure is the most suitable one.
-typedef sdsl::cst_sct3 <> cst_type;
+typedef sdsl::cst_sct3 <>	cst_type;
+typedef cst_type::csa_type	csa_type;
 
 typedef std::function <
 	bool(

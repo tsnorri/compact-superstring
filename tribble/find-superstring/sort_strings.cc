@@ -23,7 +23,7 @@
 
 namespace tribble { namespace detail {
 	
-	typedef cst_type::csa_type::size_type size_type;
+	typedef csa_type::size_type size_type;
 	
 	struct bwt_range
 	{
@@ -47,7 +47,7 @@ namespace tribble { namespace detail {
 		inline size_type substring_count() const { return 1 + (substring_range_right - substring_range_left); }
 		inline size_type match_count() const { return 1 + (match_range_right - match_range_left); }
 		
-		inline char next_substring_leftmost_character(cst_type::csa_type const &csa)
+		inline char next_substring_leftmost_character(csa_type const &csa)
 		{
 			return csa.bwt[substring_range_left];
 		}
@@ -58,18 +58,18 @@ namespace tribble { namespace detail {
 			substring_range_right = val;
 		}
 		
-		inline void backtrack_substring_with_lf(cst_type::csa_type const &csa)
+		inline void backtrack_substring_with_lf(csa_type const &csa)
 		{
 			auto const lf_val(csa.lf[substring_range_left]); // FIXME: check exact time.
 			set_substring_range_singular(lf_val);
 		}
 		
-		inline size_type backward_search_substring(cst_type::csa_type const &csa, cst_type::csa_type::char_type c)
+		inline size_type backward_search_substring(csa_type const &csa, csa_type::char_type c)
 		{
 			return sdsl::backward_search(csa, substring_range_left, substring_range_right, c, substring_range_left, substring_range_right);
 		}
 		
-		inline size_type backward_search_match(cst_type::csa_type const &csa, cst_type::csa_type::char_type c)
+		inline size_type backward_search_match(csa_type const &csa, csa_type::char_type c)
 		{
 			return sdsl::backward_search(csa, match_range_left, match_range_right, c, match_range_left, match_range_right);
 		}
@@ -246,7 +246,7 @@ namespace tribble { namespace detail {
 			auto const csa_size(csa.size());
 			
 			// Store the lexicographic range of the sentinel character.
-			cst_type::csa_type::size_type left(0), right(csa_size - 1);
+			csa_type::size_type left(0), right(csa_size - 1);
 			auto const string_count(sdsl::backward_search(csa, left, right, sentinel, left, right));
 			
 			std::size_t const bits_for_m(1 + sdsl::bits::hi(1 + string_count));
