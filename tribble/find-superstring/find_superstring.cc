@@ -143,7 +143,7 @@ void find_superstring(char const *source_fname, char const sentinel, find_supers
 	sdsl::int_vector <> substring_lengths;
 
 	std::cerr << "Sorting strings…" << std::endl;
-	sort_strings_by_length(cst, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
+	sort_strings_by_length(cst.csa, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
 
 	std::cerr << "Finding matches…" << std::endl;
 	find_superstring_with_sorted(

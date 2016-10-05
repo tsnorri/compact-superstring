@@ -40,7 +40,7 @@ typedef std::function <
 
 extern "C" void create_index(std::istream &source_stream, char const sentinel);
 extern "C" void sort_strings_by_length(
-	cst_type const &cst,
+	csa_type const &csa,
 	char const sentinel,
 	/* out */ sdsl::int_vector <> &sorted_bwt_indices,
 	/* out */ sdsl::int_vector <> &sorted_bwt_start_indices,

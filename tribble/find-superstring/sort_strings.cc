@@ -212,13 +212,11 @@ namespace tribble { namespace detail {
 		
 		inline void print() const
 		{
-#ifdef DEBUGGING_OUTPUT
 			std::cerr << "j_idx: " << m_j_idx << " i: " << m_i << " limit: " << m_limit << std::endl;
 			std::cerr << "jump:";
 			for (auto const k : m_jump)
 				std::cerr << " " << k;
 			std::cerr << std::endl;
-#endif
 		}
 	};
 	
@@ -226,7 +224,7 @@ namespace tribble { namespace detail {
 	class string_sorter
 	{
 	protected:
-		cst_type const		*m_cst{nullptr};
+		csa_type const		*m_csa{nullptr};
 		bwt_range_array		m_ranges;
 		linked_list			m_index_list;
 		sdsl::int_vector <>	m_bwt_start_indices;
@@ -238,16 +236,15 @@ namespace tribble { namespace detail {
 		char const			m_sentinel{0};
 		
 	public:
-		string_sorter(cst_type const &cst, char const sentinel):
-			m_cst(&cst),
+		string_sorter(csa_type const &csa, char const sentinel):
+			m_csa(&csa),
 			m_sentinel(sentinel)
 		{
-			auto const &csa(cst.csa);
-			auto const csa_size(csa.size());
+			auto const csa_size(m_csa->size());
 			
 			// Store the lexicographic range of the sentinel character.
 			csa_type::size_type left(0), right(csa_size - 1);
-			auto const string_count(sdsl::backward_search(csa, left, right, sentinel, left, right));
+			auto const string_count(sdsl::backward_search(*m_csa, left, right, sentinel, left, right));
 			
 			std::size_t const bits_for_m(1 + sdsl::bits::hi(1 + string_count));
 			std::size_t const bits_for_n(1 + sdsl::bits::hi(csa_size));
@@ -289,10 +286,18 @@ namespace tribble { namespace detail {
 		}
 		
 	protected:
-		inline void add_match(size_type const range_start)
+		inline void add_match(bwt_range const &range)
 		{
+			auto const i(m_index_list.get_i());
+
+#ifdef DEBUGGING_OUTPUT
+			std::cerr << "Adding a match for range " << i << ": ["
+				<< range.substring_range_left << ", " << range.substring_range_right << "] ["
+				<< range.match_range_left << ", " << range.match_range_right << "]" << std::endl;
+#endif
+			auto const range_start(range.match_range_left);
 			m_sorted_bwt_indices[m_sorted_bwt_ptr] = range_start;
-			m_sorted_bwt_start_indices[m_sorted_bwt_ptr] = m_bwt_start_indices[m_index_list.get_i()];
+			m_sorted_bwt_start_indices[m_sorted_bwt_ptr] = m_bwt_start_indices[i];
 			m_string_lengths[m_sorted_bwt_ptr] = m_length;
 			
 			++m_sorted_bwt_ptr;
@@ -309,7 +314,7 @@ namespace tribble { namespace detail {
 			// may be stored by calling add_match().
 			
 			// Check the next character.
-			auto const next_character(range.next_substring_leftmost_character(m_cst->csa));
+			auto const next_character(range.next_substring_leftmost_character(*m_csa));
 			if (0 == next_character)
 			{
 				m_index_list.advance_and_mark_skipped();
@@ -317,14 +322,13 @@ namespace tribble { namespace detail {
 			}
 			
 			// Look for the next character in the range that didn't begin with '#'.
-			range.backtrack_substring_with_lf(m_cst->csa);
-			auto const match_count(range.backward_search_match(m_cst->csa, next_character));
+			range.backtrack_substring_with_lf(*m_csa);
+			auto const match_count(range.backward_search_match(*m_csa, next_character));
 			assert(match_count);
 			if (range.is_match_range_singular())
 			{
 				// Since the match range became singular, we have found the branching point.
-				auto const range_start(range.match_range_left);
-				add_match(range_start);
+				add_match(range);
 				m_ranges.remove(m_index_list.get_i());
 				m_index_list.advance_and_mark_skipped();
 			}
@@ -348,7 +352,6 @@ namespace tribble { namespace detail {
 			// and may be stored. Otherwise check if the searched substring range split
 			// and handle the remaining parts.
 			
-			auto const &csa(m_cst->csa);
 			auto const original_substring_count(range.substring_count());
 			std::size_t count_diff(original_substring_count);
 			assert(1 < original_substring_count);
@@ -358,7 +361,7 @@ namespace tribble { namespace detail {
 				bwt_range new_range(range);
 
 				// Check the next character.
-				auto const next_character(new_range.next_substring_leftmost_character(csa));
+				auto const next_character(new_range.next_substring_leftmost_character(*m_csa));
 				if (0 == next_character)
 				{
 					++range.substring_range_left;
@@ -367,8 +370,8 @@ namespace tribble { namespace detail {
 					continue;
 				}
 				
-				auto const substring_count(new_range.backward_search_substring(csa, next_character));
-				auto const match_count(new_range.backward_search_match(csa, next_character));
+				auto const substring_count(new_range.backward_search_substring(*m_csa, next_character));
+				auto const match_count(new_range.backward_search_match(*m_csa, next_character));
 				assert(match_count);
 				
 				if (new_range.is_match_range_singular())
@@ -376,8 +379,7 @@ namespace tribble { namespace detail {
 					assert(1 == substring_count);
 					assert(1 == match_count);
 					
-					auto const range_start(new_range.match_range_left);
-					add_match(range_start);
+					add_match(new_range);
 					m_ranges.remove(m_index_list.get_i());
 					m_index_list.advance_and_mark_skipped();
 				}
@@ -411,14 +413,13 @@ namespace tribble { namespace detail {
 		
 		inline void sort_strings_by_length()
 		{
-			auto const &csa(m_cst->csa);
-			auto const csa_size(csa.size());
+			auto const csa_size(m_csa->size());
 			
 			if (DEBUGGING_OUTPUT)
 			{
-				std::cerr << " i SA ISA PSI LF BWT LCP   T[SA[i]..SA[i]-1]" << std::endl;
-				sdsl::csXprintf(std::cerr, "%2I %2S %3s %3P %2p %3B %3L   %:1T", *m_cst);
-				std::cerr << "Text: '" << sdsl::extract(csa, 0, csa_size - 1) << "'" << std::endl;
+				std::cerr << " i SA ISA PSI LF BWT   T[SA[i]..SA[i]-1]" << std::endl;
+				sdsl::csXprintf(std::cerr, "%2I %2S %3s %3P %2p %3B   %:1T", *m_csa);
+				std::cerr << "Text: '" << sdsl::extract(*m_csa, 0, csa_size - 1) << "'" << std::endl;
 			}
 			
 			while (m_index_list.reset())
@@ -449,14 +450,14 @@ namespace tribble { namespace detail {
 
 
 void sort_strings_by_length(
-	cst_type const &cst,
+	csa_type const &csa,
 	char const sentinel,
 	/* out */ sdsl::int_vector <> &sorted_bwt_indices,
 	/* out */ sdsl::int_vector <> &sorted_bwt_start_indices,
 	/* out */ sdsl::int_vector <> &string_lengths
 )
 {
-	tribble::detail::string_sorter sorter(cst, sentinel);
+	tribble::detail::string_sorter sorter(csa, sentinel);
 	sorter.sort_strings_by_length();
 	
 	sorter.get_sorted_bwt_indices(sorted_bwt_indices);
