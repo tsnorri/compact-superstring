@@ -131,6 +131,7 @@ namespace tribble { namespace detail {
 		
 		inline void print() const
 		{
+			// m_used_indices does not exist if DEBUGGING_OUTPUT has not been defined.
 #ifdef DEBUGGING_OUTPUT
 			std::cerr << "Substring ranges:";
 			for (std::size_t i(0), count(m_used_indices.size()); i < count; ++i)
@@ -290,11 +291,13 @@ namespace tribble { namespace detail {
 		{
 			auto const i(m_index_list.get_i());
 
-#ifdef DEBUGGING_OUTPUT
-			std::cerr << "Adding a match for range " << i << ": ["
-				<< range.substring_range_left << ", " << range.substring_range_right << "] ["
-				<< range.match_range_left << ", " << range.match_range_right << "]" << std::endl;
-#endif
+			if (DEBUGGING_OUTPUT)
+			{
+				std::cerr << "Adding a match for range " << i << ": ["
+					<< range.substring_range_left << ", " << range.substring_range_right << "] ["
+					<< range.match_range_left << ", " << range.match_range_right << "]" << std::endl;
+			}
+
 			auto const range_start(range.match_range_left);
 			m_sorted_bwt_indices[m_sorted_bwt_ptr] = range_start;
 			m_sorted_bwt_start_indices[m_sorted_bwt_ptr] = m_bwt_start_indices[i];
