@@ -59,6 +59,13 @@ void find_superstring_with_sorted(
 		for (auto const idx : sorted_substrings)
 		{
 			auto const node(cst.select_leaf(1 + idx));
+			
+			if (DEBUGGING_OUTPUT)
+			{
+				std::cerr << "Start: " << sdsl::extract(cst, cst.select_leaf(1 + sorted_substring_start_indices[i])) << std::endl;
+				std::cerr << "Node:  " << sdsl::extract(cst, node) << std::endl;
+			}
+			
 			sorted_nodes.set(i, node);
 			++i;
 		}
