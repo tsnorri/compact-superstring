@@ -25,9 +25,9 @@
 #define DEBUGGING_OUTPUT 0
 #endif
 
-// FIXME: check that the LCP structure is the most suitable one.
-typedef sdsl::cst_sct3 <>	cst_type;
-typedef cst_type::csa_type	csa_type;
+typedef sdsl::wt_blcd <>								wt_type;
+typedef sdsl::csa_wt <wt_type, 0xffffffff, 0xffffffff>	csa_type;
+typedef sdsl::cst_sct3 <csa_type>						cst_type;
 
 typedef std::function <
 	bool(

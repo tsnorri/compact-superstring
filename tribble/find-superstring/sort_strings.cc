@@ -18,12 +18,15 @@
 #include <sdsl/csa_wt.hpp>
 #include <sdsl/int_vector.hpp>
 #include <sdsl/suffix_array_algorithm.hpp>
+#include <sdsl/wt_algorithm.hpp>
 #include "find_superstring.hh"
 
 
 namespace tribble { namespace detail {
 	
 	typedef csa_type::size_type size_type;
+	typedef wt_type::size_type wt_size_type;
+	typedef wt_type::value_type wt_value_type;
 	
 	struct bwt_range
 	{
@@ -44,6 +47,7 @@ namespace tribble { namespace detail {
 		
 		inline bool is_substring_range_singular() const { return substring_range_left == substring_range_right; }
 		inline bool is_match_range_singular() const { return match_range_left == match_range_right; }
+		inline bool has_equal_ranges() const { return (substring_range_left == match_range_left && substring_range_right == match_range_right); }
 		inline size_type substring_count() const { return 1 + (substring_range_right - substring_range_left); }
 		inline size_type match_count() const { return 1 + (match_range_right - match_range_left); }
 		
@@ -222,13 +226,28 @@ namespace tribble { namespace detail {
 	};
 	
 	
+	struct interval_symbols
+	{
+		std::vector <wt_value_type> cs;
+		std::vector <wt_size_type> rank_c_i;
+		std::vector <wt_size_type> rank_c_j;
+		
+		interval_symbols(std::size_t const sigma):
+			cs(sigma),
+			rank_c_i(sigma),
+			rank_c_j(sigma)
+		{
+		}
+	};
+	
+	
 	class string_sorter
 	{
 	protected:
 		csa_type const		*m_csa{nullptr};
 		bwt_range_array		m_ranges;
 		linked_list			m_index_list;
-		sdsl::int_vector <>	m_bwt_start_indices;
+		interval_symbols	m_is_buffer;
 		sdsl::int_vector <>	m_sorted_bwt_indices;
 		sdsl::int_vector <>	m_sorted_bwt_start_indices;
 		sdsl::int_vector <>	m_string_lengths;
@@ -239,12 +258,13 @@ namespace tribble { namespace detail {
 	public:
 		string_sorter(csa_type const &csa, char const sentinel):
 			m_csa(&csa),
+			m_is_buffer(csa.wavelet_tree.sigma),
 			m_sentinel(sentinel)
 		{
 			auto const csa_size(m_csa->size());
 			
 			// Store the lexicographic range of the sentinel character.
-			csa_type::size_type left(0), right(csa_size - 1);
+			size_type left(0), right(csa_size - 1);
 			auto const string_count(sdsl::backward_search(*m_csa, left, right, sentinel, left, right));
 			
 			std::size_t const bits_for_m(1 + sdsl::bits::hi(1 + string_count));
@@ -264,11 +284,6 @@ namespace tribble { namespace detail {
 			}
 			
 			{
-				sdsl::int_vector <> bwt_start_indices(string_count, 0, bits_for_n);
-				m_bwt_start_indices = std::move(bwt_start_indices);
-			}
-			
-			{
 				sdsl::int_vector <> sorted_bwt_indices(string_count - 1, 0, bits_for_n);
 				sdsl::int_vector <> sorted_bwt_start_indices(string_count - 1, 0, bits_for_n);
 				sdsl::int_vector <> string_lengths(string_count - 1, 0, bits_for_n);
@@ -277,30 +292,29 @@ namespace tribble { namespace detail {
 				m_sorted_bwt_start_indices	= std::move(sorted_bwt_start_indices);
 				m_string_lengths			= std::move(string_lengths);
 			}
-			
-			for (std::size_t i(0); left + i <= right; ++i)
-			{
-				assert(left + i < ~(~0ULL << bits_for_n));
-				assert(i < ~(~0ULL << bits_for_m));
-				m_bwt_start_indices[i] = left + i;
-			}
 		}
 		
 	protected:
-		inline void add_match(bwt_range const &range)
+		inline void add_match(bwt_range range)
 		{
-			auto const i(m_index_list.get_i());
+			assert(range.has_equal_ranges());
 
 			if (DEBUGGING_OUTPUT)
 			{
-				std::cerr << "Adding a match for range " << i << ": ["
-					<< range.substring_range_left << ", " << range.substring_range_right << "] ["
-					<< range.match_range_left << ", " << range.match_range_right << "]" << std::endl;
+				std::cerr << "*** Adding a match for range ["
+					<< range.substring_range_left << ", " << range.substring_range_right
+					<< "]" << std::endl;
 			}
 
 			auto const range_start(range.match_range_left);
 			m_sorted_bwt_indices[m_sorted_bwt_ptr] = range_start;
-			m_sorted_bwt_start_indices[m_sorted_bwt_ptr] = m_bwt_start_indices[i];
+			
+			// Find the start of the substring.
+			while (range.next_substring_leftmost_character(*m_csa) != m_sentinel)
+				range.backtrack_substring_with_lf(*m_csa);
+			range.backtrack_substring_with_lf(*m_csa);
+			
+			m_sorted_bwt_start_indices[m_sorted_bwt_ptr] = range.substring_range_left;
 			m_string_lengths[m_sorted_bwt_ptr] = m_length;
 			
 			++m_sorted_bwt_ptr;
@@ -347,32 +361,51 @@ namespace tribble { namespace detail {
 		inline void handle_non_singular_range(bwt_range range)
 		{
 			// Suppose the substring range (one that begins with '#') is not singular,
-			// i.e. the left bound is not equal to the right bound. First check the next
-			// character in the first string and handle the first sentinel, i.e.
-			// # in the left end of the concatenated string. Then use backward_search
-			// to locate the next range of substrings and corresponding matches.
-			// If the latter range becomes singular, the branching point has been found
-			// and may be stored. Otherwise check if the searched substring range split
-			// and handle the remaining parts.
+			// i.e. the left bound is not equal to the right bound. Use the wavelet tree
+			// to list all the distinct characters in that range. First check for the '$'
+			// character and skip it. Then iterate over the remaining characters and
+			// use backward_search to find the matching substrings. Also use
+			// backward_search on the current substring in order to reduce the number of
+			// possible symbols.
 			
 			auto const original_substring_count(range.substring_count());
 			std::size_t count_diff(original_substring_count);
 			assert(1 < original_substring_count);
+			
+			wt_size_type symbol_count{0}, si{0};
+			sdsl::interval_symbols(
+				m_csa->wavelet_tree,
+				range.substring_range_left,
+				1 + range.substring_range_right,
+				symbol_count,
+				m_is_buffer.cs,
+				m_is_buffer.rank_c_i,
+				m_is_buffer.rank_c_j
+			);
+
+			assert(symbol_count);
+
+			// For some reason cs is not lexicographically ordered even though the wavelet tree is balanced.
+			if (true || !wt_type::lex_ordered)
+				std::sort(m_is_buffer.cs.begin(), symbol_count + m_is_buffer.cs.begin());
+			
+			// Handle the '$' character.
+			if (0 == m_is_buffer.cs[0])
+			{
+				++si;
+				--count_diff;
+				m_ranges.remove(m_index_list.get_i());
+				m_index_list.advance_and_mark_skipped();
+			}
 			
 			while (count_diff)
 			{
 				bwt_range new_range(range);
 
 				// Check the next character.
-				auto const next_character(new_range.next_substring_leftmost_character(*m_csa));
-				if (0 == next_character)
-				{
-					++range.substring_range_left;
-					--count_diff;
-					m_index_list.advance_and_mark_skipped();
-					continue;
-				}
-				
+				assert(si < symbol_count);
+				auto const next_character(m_is_buffer.cs[si++]);
+				assert(next_character);
 				auto const substring_count(new_range.backward_search_substring(*m_csa, next_character));
 				auto const match_count(new_range.backward_search_match(*m_csa, next_character));
 				assert(match_count);
@@ -394,7 +427,6 @@ namespace tribble { namespace detail {
 				}
 				
 				count_diff -= substring_count;
-				range.substring_range_left += substring_count;
 			}
 		}
 		
@@ -422,6 +454,10 @@ namespace tribble { namespace detail {
 			{
 				std::cerr << " i SA ISA PSI LF BWT   T[SA[i]..SA[i]-1]" << std::endl;
 				sdsl::csXprintf(std::cerr, "%2I %2S %3s %3P %2p %3B   %:1T", *m_csa);
+				std::cerr << "First row: '";
+				for (std::size_t i(0), count(m_csa->size()); i < count; ++i)
+					std::cerr << m_csa->F[i];
+				std::cerr << "'" << std::endl;
 				std::cerr << "Text: '" << sdsl::extract(*m_csa, 0, csa_size - 1) << "'" << std::endl;
 			}
 			
