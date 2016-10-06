@@ -92,7 +92,7 @@ int main(int argc, char **argv)
 			std::cerr
 				<< "Found match for substring " << read_lex_rank << " of length " << match_length
 				<< ": [" << match_sa_begin << ", " << match_sa_end << "]" << std::endl;
-			return false;
+			return true;
 		};
 
 		find_superstring(args_info.source_file_given ? args_info.source_file_arg : nullptr, '#', cb);

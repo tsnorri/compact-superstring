@@ -20,11 +20,11 @@
 #include <sdsl/suffix_array_algorithm.hpp>
 #include <sdsl/wt_algorithm.hpp>
 #include "find_superstring.hh"
+#include "linked_list.hh"
 
 
 namespace tribble { namespace detail {
 	
-	typedef csa_type::size_type size_type;
 	typedef wt_type::size_type wt_size_type;
 	typedef wt_type::value_type wt_value_type;
 	
@@ -153,75 +153,6 @@ namespace tribble { namespace detail {
 			}
 			std::cerr << std::endl;
 #endif
-		}
-	};
-	
-	
-	class linked_list
-	{
-	protected:
-		sdsl::int_vector <>	m_jump;
-		std::size_t			m_j_idx{0};
-		size_type			m_i{0};
-		size_type			m_limit{0};
-		
-	public:
-		linked_list() = default;
-		
-		linked_list(std::size_t const count, std::size_t const bits):
-			m_jump(count, 0, bits),
-			m_limit(count - 1)
-		{
-			for (std::size_t i(0); i < count; ++i)
-				m_jump[i] = i;
-		}
-		
-		inline size_type get_i() const { return m_i; }
-		
-		inline bool reset()
-		{
-			m_j_idx = 0;
-			m_i = m_jump[m_j_idx];
-			
-			if (m_i < m_limit)
-				return true;
-			
-			return false;
-		}
-		
-		inline bool can_advance() const
-		{
-			return m_i < m_limit;
-		}
-	
-		inline void advance()
-		{
-			advance(1);
-		}
-		
-		inline void advance(size_type const count)
-		{
-			std::size_t const next_j_idx(m_i + count);
-			std::size_t const next_i(m_jump[next_j_idx]);
-			m_j_idx = next_j_idx;
-			m_i = next_i;
-		}
-		
-		inline void advance_and_mark_skipped()
-		{
-			std::size_t const next_j_idx(m_i + 1);
-			std::size_t const next_i(m_jump[next_j_idx]);
-			m_jump[m_j_idx] = next_i;
-			m_i = next_i;
-		}
-		
-		inline void print() const
-		{
-			std::cerr << "j_idx: " << m_j_idx << " i: " << m_i << " limit: " << m_limit << std::endl;
-			std::cerr << "jump:";
-			for (auto const k : m_jump)
-				std::cerr << " " << k;
-			std::cerr << std::endl;
 		}
 	};
 	

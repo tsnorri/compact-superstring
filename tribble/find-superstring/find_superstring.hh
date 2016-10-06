@@ -28,6 +28,7 @@
 typedef sdsl::wt_blcd <>								wt_type;
 typedef sdsl::csa_wt <wt_type, 0xffffffff, 0xffffffff>	csa_type;
 typedef sdsl::cst_sct3 <csa_type>						cst_type;
+typedef csa_type::size_type								size_type;
 
 typedef std::function <
 	bool(

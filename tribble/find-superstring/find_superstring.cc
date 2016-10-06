@@ -18,6 +18,7 @@
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream.hpp>
 #include "find_superstring.hh"
+#include "linked_list.hh"
 #include "node_array.hh"
 
 namespace ios = boost::iostreams;
@@ -71,6 +72,10 @@ void find_superstring_with_sorted(
 		}
 	}
 	
+	// Use O(m log m) bits for a linked list.
+	std::size_t const bits_for_m(1 + sdsl::bits::hi(1 + string_count));
+	tribble::linked_list index_list(1 + string_count, bits_for_m);
+	
 	// Follow the suffix links until the string depth of the parent node
 	// is exactly the same as the number of characters left. In this case,
 	// the first character of the label of the edge towards the leaf should
@@ -79,15 +84,20 @@ void find_superstring_with_sorted(
 	// match. In order to find the highest node, try to ascend in the tree
 	// as long as the string depth of the current node is still greater than
 	// the length of the string in question.
-	for (std::size_t cl(0); cl < max_length; ++cl) // Current discarded prefix length w.r.t. the longest substring.
+	std::size_t cl(0); // Current discarded prefix length w.r.t. the longest substring.
+	while (index_list.reset() && cl < max_length)
 	{
 		auto const remaining_suffix_length(max_length - cl);
 		
 		// Iterate the range where the strings have equal lengths.
-		// FIXME: consider using a pointerless linked list such as the one in sort_strings_by_length.
-		for (auto i(string_count); 0 < i && remaining_suffix_length <= string_lengths[i - 1]; --i)
+		while (index_list.can_advance())
 		{
 			// Follow one suffix link for each node on one iteration of the outer loop.
+
+			auto const i(string_count - index_list.get_i());
+			assert(i);
+			if (string_lengths[i - 1] < remaining_suffix_length)
+				break;
 			
 			auto const substring_length(string_lengths[i - 1]);
 			auto node(sorted_nodes.get(i - 1));
@@ -112,15 +122,27 @@ void find_superstring_with_sorted(
 				{
 					assert(cst.edge(node, 1 + parent_string_depth) == sentinel);	// edge takes potentially more time so just verify.
 					
-					// A match was found
-					match_callback(sorted_substring_start_indices[i - 1], remaining_suffix_length, cst.lb(match_node), cst.rb(match_node));
-					// FIXME: check the return value, remove the substring that has the matching suffix from the linked list if true.
-					// (This is sufficient since the list will only be used for finding suffix matches.)
+					// A match was found. Handle it.
+					bool const should_remove(match_callback(
+						sorted_substring_start_indices[i - 1],
+						remaining_suffix_length,
+						cst.lb(match_node),
+						cst.rb(match_node)
+					));
+					
+					if (should_remove)
+					{
+						index_list.advance_and_mark_skipped();
+						continue;
+					}
 				}
 			}
 			
+			index_list.advance();
 			sorted_nodes.set(i - 1, node);
 		}
+		
+		++cl;
 	}
 }
 
