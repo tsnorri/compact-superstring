@@ -15,7 +15,7 @@ version "0.1"
 purpose "Find the shortest common superstring using a greedy algorithm."
 usage	"find-superstring [ -c | -f ] < input > output"
 
-defmode		"Create index"			modedesc = "Prepare the index for finding the superstring."
+defmode		"Create index"			modedesc = "Prepare an index for finding the superstring."
 defmode		"Find superstring"		modedesc = "Find the shortest common superstring."
 
 modeoption	"create-index"			c	"Create the index"													mode = "Create index"		required
