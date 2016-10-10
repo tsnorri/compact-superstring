@@ -23,6 +23,9 @@ Superstring_callback::Superstring_callback()
 : merges_done(0), n_strings(-1) {}
 
 bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_string, std::size_t overlap_length){
+	assert(left_string < leftend.size());
+	assert(right_string < leftend.size());
+	assert(right_string < rightavailable.size());
     if(leftend[right_string] != left_string){
         merges.push_back(std::make_tuple(left_string, right_string, overlap_length));
         rightavailable[right_string] = false;
@@ -79,6 +82,7 @@ bool Superstring_callback::callback(std::size_t read_lex_rank, std::size_t match
 
 std::size_t Superstring_callback::get_next_right_available(std::size_t index){
     for(std::size_t i = index+1; i < n_strings; i++){
+		assert(i < rightavailable.size());
         if(rightavailable[i]) 
             return i;
     }
@@ -94,6 +98,7 @@ std::string Superstring_callback::build_final_superstring(std::vector<std::strin
     
     // Initilize current_string_idx to the first string in the final superstring
     for(std::size_t i = 0; i < n_strings; i++){
+		assert(i < rightavailable.size());
         if(rightavailable[i]){
             current_string_idx = i;
             break;
