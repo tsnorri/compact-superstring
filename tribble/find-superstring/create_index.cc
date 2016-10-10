@@ -63,11 +63,24 @@ public:
 		std::sort(m_sequences.begin(), m_sequences.end());
 		
 		std::cerr << "Writing to a temporary file…" << std::endl;
-		for (auto const &seq : m_sequences)
+		if (m_sequences.size())
 		{
-			// Write the sequence to the specified file.
+			// Output the first sequence.
+			decltype(m_sequences)::value_type const &previous_seq(m_sequences[0]);
 			*m_output_stream << m_sentinel;
-			std::copy(seq.cbegin(), seq.cend(), std::ostream_iterator <char>(*m_output_stream));
+			std::copy(previous_seq.cbegin(), previous_seq.cend(), std::ostream_iterator <char>(*m_output_stream));
+
+			// Output the remaining unique sequences.
+			// Swapping performance for readability.
+			for (auto const &seq : m_sequences)
+			{
+				if (seq != previous_seq)
+				{
+					// Write the sequence to the specified file.
+					*m_output_stream << m_sentinel;
+					std::copy(seq.cbegin(), seq.cend(), std::ostream_iterator <char>(*m_output_stream));
+				}
+			}
 		}
 		
 		// Output the final sentinel.
