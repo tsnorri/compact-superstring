@@ -19,11 +19,18 @@
 
 using namespace std;
 
-UnionFind::UnionFind(int64_t n_elements) : n_elements(n_elements), sizes(n_elements), parents(n_elements){
-    for(int64_t i = 0; i < n_elements; i++){
-        sizes[i] = 1;
-        parents[i] = i;
-    }
+UnionFind::UnionFind(int64_t n_elements){
+    initialize(n_elements);
+}
+
+void UnionFind::initialize(int64_t n_elements){
+    this-> n_elements = n_elements;
+    sizes.resize(n_elements);
+    parents.resize(n_elements);
+	for(int64_t i = 0; i < n_elements; i++){
+		sizes[i] = 1;
+		parents[i] = i;
+	}
 }
 
 int64_t UnionFind::find(int64_t id){
