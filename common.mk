@@ -8,6 +8,8 @@ MKDIR		?= mkdir
 CLOC		?= cloc
 GENGETOPT	?= gengetopt
 
+BOOST_IOSTREAMS_LIB ?= -lboost_iostreams-mt
+
 WARNING_FLAGS	?=
 WARNING_FLAGS	+= \
 	-Wall -Werror -Wno-unused -Wno-missing-braces -Wstrict-aliasing \

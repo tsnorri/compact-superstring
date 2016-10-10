@@ -3,7 +3,7 @@ include ../../common.mk
 
 TARGET			=	find-superstring
 
-LDFLAGS			+=	-lboost_iostreams-mt
+LDFLAGS			+=	$(BOOST_IOSTREAMS_LIB)
 CPPFLAGS		+=	-DDEBUGGING_OUTPUT
 
 OBJECTS			=	main.o \
@@ -20,4 +20,4 @@ clean:
 	$(RM) $(TARGET) $(OBJECTS)
 
 $(TARGET): $(OBJECTS)
-	$(CXX) $(LDFLAGS) -o $(TARGET) $(OBJECTS)
+	$(CXX) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
