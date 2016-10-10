@@ -23,21 +23,26 @@ Superstring_callback::Superstring_callback()
 : merges_done(0), n_strings(-1) {}
 
 bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_string, std::size_t overlap_length){
-   // std::cout << "leftend size: " << leftend.size() << std::endl;
-   // std::cout << "right_string: " << right_string << std::endl;
 	assert(left_string < leftend.size());
 	assert(right_string < leftend.size());
 	assert(right_string < rightavailable.size());
-    
-    //for(int x : rightavailable) std::cout << x; std::cout << std::endl;
+    assert(rightavailable[right_string]);
+
     //std::cout << "left = " << left_string << ", right = " << right_string << std::endl;
 
     //assert(rightavailable[right_string] == true);
-    if(leftend[right_string] != left_string){
+    if(leftend[left_string] != right_string){
         merges.push_back(std::make_tuple(left_string, right_string, overlap_length));
         rightavailable[right_string] = false;
-        leftend[right_string] = leftend[left_string];
-        std::cout << "Merged " << left_string + 1 << " " << right_string + 1 << std::endl;
+        leftend[rightend[right_string]] = leftend[left_string];
+        rightend[leftend[left_string]] = rightend[right_string];
+        merges_done++;
+        //std::cout << "leftend[" << right_string << "] = leftend[" << left_string << "]" << std::endl;
+        //std::cout << "leftend[" << right_string << "] = " << leftend[left_string] << std::endl;
+        //for(int x : rightavailable) std::cout << x; std::cout << std::endl;
+        //std::cout << "leftend:  "; for(int x : leftend) std::cout << x; std::cout << std::endl;
+        //std::cout << "rightend: "; for(int x : rightend) std::cout << x; std::cout << std::endl;
+        std::cout << "Merged " << left_string << " " << right_string << std::endl;
         return true;
     }
     return false;
@@ -47,10 +52,12 @@ bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_
 void Superstring_callback::set_substring_count(std::size_t count){
     n_strings = count;
     leftend.resize(n_strings);
+    rightend.resize(n_strings);
     next.resize(n_strings);
     rightavailable.resize(n_strings);
     for(std::size_t i = 0; i < n_strings; i++){
         leftend[i] = i;
+        rightend[i] = i;
         next[i] = i+1;
         rightavailable[i] = true;
     }

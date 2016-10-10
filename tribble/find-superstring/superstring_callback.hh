@@ -54,6 +54,7 @@ private:
 	int64_t n_strings;
 	// todo: use sdsl containers
 	std::vector<std::size_t> leftend;
+	std::vector<std::size_t> rightend;
 	std::vector<std::size_t> next;
 	std::vector<bool> rightavailable;
 	std::vector<std::tuple<std::size_t,std::size_t,std::size_t> > merges; // triples (left read, right read, overlap length)
