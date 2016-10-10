@@ -3,17 +3,17 @@ include ../../common.mk
 
 TARGET			=	find-superstring
 
-LDFLAGS			+=	-lboost_iostreams-mt
+LDFLAGS			+=	$(BOOST_IOSTREAMS_LIB)
 CPPFLAGS		+=	-DDEBUGGING_OUTPUT
 
-OBJECTS			=	main.o \
-					cmdline.o \
+OBJECTS			=	cmdline.o \
 					create_index.o \
 					find_suffixes.o \
+					main.o \
 					sort_strings.o \
+					superstring_callback.o \
 					vector_source.o \
 					visualize.o
-
 
 all: $(TARGET)
 
@@ -21,4 +21,4 @@ clean:
 	$(RM) $(TARGET) $(OBJECTS)
 
 $(TARGET): $(OBJECTS)
-	$(CXX) $(LDFLAGS) -o $(TARGET) $(OBJECTS)
+	$(CXX) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
