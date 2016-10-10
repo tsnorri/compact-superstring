@@ -6,14 +6,14 @@ TARGET			=	find-superstring
 LDFLAGS			+=	$(BOOST_IOSTREAMS_LIB)
 # CPPFLAGS		+=	-DDEBUGGING_OUTPUT
 
-OBJECTS			=	main.o \
-					cmdline.o \
+OBJECTS			=	cmdline.o \
 					create_index.o \
 					find_suffixes.o \
+					main.o \
 					sort_strings.o \
+					superstring_callback.o \
 					vector_source.o \
-					superstring_callback.o
-
+					visualize.o
 
 all: $(TARGET)
 

@@ -81,11 +81,29 @@ int main(int argc, char **argv)
 	gengetopt_args_info args_info;
 	if (0 != cmdline_parser(argc, argv, &args_info))
 		exit(EXIT_FAILURE);
+	
+	// See if memory monitor should be used.
+	ios::stream <ios::file_descriptor_sink> mem_usage_stream;
+	if (args_info.output_memory_usage_given)
+	{
+		int fd(open(args_info.output_memory_usage_arg, O_WRONLY | O_CREAT | O_EXCL));
+		if (-1 == fd)
+			handle_error();
+		
+		ios::file_descriptor_sink sink(fd, ios::close_handle);
+		mem_usage_stream.open(sink);
+
+		sdsl::memory_monitor::start();
+	}
 
 	// Check the mode and execute.
 	if (args_info.create_index_given)
 	{
 		open_source_file_and_execute(args_info, [](std::istream &istream){ create_index(istream, '#'); });
+	}
+	else if (args_info.index_visualization_given)
+	{
+		open_source_file_and_execute(args_info, [](std::istream &istream){ visualize(istream); });
 	}
 	else if (args_info.find_superstring_given)
 	{
@@ -106,6 +124,12 @@ int main(int argc, char **argv)
 	{
 		std::cerr << "Error: No mode given." << std::endl;
 		exit(EXIT_FAILURE);
+	}
+	
+	if (args_info.output_memory_usage_given)
+	{
+		sdsl::memory_monitor::stop();
+		sdsl::memory_monitor::write_memory_log <sdsl::HTML_FORMAT>(mem_usage_stream);
 	}
 
 	return EXIT_SUCCESS;

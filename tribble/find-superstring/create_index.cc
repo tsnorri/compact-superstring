@@ -32,6 +32,7 @@ class create_index_cb
 protected:
 	char const *m_source_fname{};
 	std::ostream *m_output_stream{};
+	std::vector <std::vector <char>> m_sequences;
 	char m_sentinel{};
 
 public:
@@ -49,18 +50,26 @@ public:
 		tribble::vector_source &vs
 	)
 	{
-		// Output the sentinel.
-		*m_output_stream << m_sentinel;
-
-		// Write the sequence to the specified file.
-		std::copy(seq->begin(), seq->end(), std::ostream_iterator <char>(*m_output_stream));
-		m_output_stream->flush();
+		// Copy the sequence to the collection.
+		std::vector <char> seq_copy(*seq.get());
+		m_sequences.emplace_back(seq_copy);
 		vs.put_vector(seq);
 	}
 
 
 	void finish()
 	{
+		std::cerr << "Sorting the sequences…" << std::endl;
+		std::sort(m_sequences.begin(), m_sequences.end());
+		
+		std::cerr << "Writing to a temporary file…" << std::endl;
+		for (auto const &seq : m_sequences)
+		{
+			// Write the sequence to the specified file.
+			*m_output_stream << m_sentinel;
+			std::copy(seq.cbegin(), seq.cend(), std::ostream_iterator <char>(*m_output_stream));
+		}
+		
 		// Output the final sentinel.
 		*m_output_stream << m_sentinel;
 		m_output_stream->flush();
@@ -94,6 +103,7 @@ void create_index(std::istream &source_stream, char const sentinel)
 		ios::stream <ios::file_descriptor_sink> output_stream(temp_fd, ios::close_handle);
 		create_index_cb cb(temp_fname, output_stream, sentinel);
 
+		std::cerr << "Reading the sequences…" << std::endl;
 		reader.read_from_stream(source_stream, vs, cb);
 	}
 	catch (...)
