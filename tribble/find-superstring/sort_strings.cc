@@ -34,6 +34,7 @@ namespace tribble { namespace detail {
 		size_type substring_range_right{0};
 		size_type match_range_left{0};
 		size_type match_range_right{0};
+		size_type branch_point{0};
 		size_type substring_branching_suffix_length{0};
 		
 		bwt_range() = default;
@@ -45,7 +46,7 @@ namespace tribble { namespace detail {
 			match_range_right(match_right)
 		{
 		}
-		
+
 		inline bool is_substring_range_singular() const { return substring_range_left == substring_range_right; }
 		inline bool is_match_range_singular() const { return match_range_left == match_range_right; }
 		inline bool has_equal_ranges() const { return (substring_range_left == match_range_left && substring_range_right == match_range_right); }
@@ -69,10 +70,10 @@ namespace tribble { namespace detail {
 			set_substring_range_singular(lf_val);
 		}
 		
-		inline void substring_psi(csa_type const &csa)
+		inline void branch_point_psi(csa_type const &csa)
 		{
-			auto const psi_val(csa.psi[substring_range_left]); // FIXME: check exact time.
-			set_substring_range_singular(psi_val);
+			auto const psi_val(csa.psi[branch_point]); // FIXME: check exact time.
+			branch_point = psi_val;
 		}
 		
 		inline size_type backward_search_substring(csa_type const &csa, csa_type::char_type c)
@@ -96,6 +97,7 @@ namespace tribble { namespace detail {
 
 		sdsl::int_vector <> m_substring_ranges;						// Ranges that have '#' on the right.
 		sdsl::int_vector <> m_match_ranges;							// Ranges without the '#' on the right.
+		sdsl::int_vector <> m_branch_points;
 		sdsl::int_vector <> m_substring_branching_suffix_lengths;
 		
 	public:
@@ -107,6 +109,7 @@ namespace tribble { namespace detail {
 #endif
 			m_substring_ranges(2 * count, 0, bits),
 			m_match_ranges(2 * count, 0, bits),
+			m_branch_points(count, 0, bits),
 			m_substring_branching_suffix_lengths(count, 0, bits)
 		{
 		}
@@ -120,6 +123,7 @@ namespace tribble { namespace detail {
 			range.substring_range_right				= m_substring_ranges[2 * k + 1];
 			range.match_range_left					= m_match_ranges[2 * k];
 			range.match_range_right					= m_match_ranges[2 * k + 1];
+			range.branch_point						= m_branch_points[k];
 			range.substring_branching_suffix_length	= m_substring_branching_suffix_lengths[k];
 		}
 		
@@ -129,6 +133,7 @@ namespace tribble { namespace detail {
 			m_substring_ranges[2 * k + 1]			= range.substring_range_right;
 			m_match_ranges[2 * k]					= range.match_range_left;
 			m_match_ranges[2 * k + 1]				= range.match_range_right;
+			m_branch_points[k]						= range.branch_point;
 			m_substring_branching_suffix_lengths[k]	= range.substring_branching_suffix_length;
 			
 #ifdef DEBUGGING_OUTPUT
@@ -262,10 +267,10 @@ namespace tribble { namespace detail {
 			m_sorted_bwt_indices[m_sorted_bwt_ptr] = range_start;
 			
 			// Find the end of the substring.
-			for (std::size_t i(0); i < range.substring_branching_suffix_length; ++i)
-				range.substring_sl(*m_csa);
+			for (std::size_t i(0); i <= range.substring_branching_suffix_length; ++i)
+				range.branch_point_psi(*m_csa);
 			
-			m_sorted_bwt_start_indices[m_sorted_bwt_ptr] = range.substring_range_left;
+			m_sorted_bwt_start_indices[m_sorted_bwt_ptr] = range.branch_point;
 			m_string_lengths[m_sorted_bwt_ptr] = m_length;
 			
 			++m_sorted_bwt_ptr;
@@ -367,6 +372,7 @@ namespace tribble { namespace detail {
 					assert(1 == match_count);
 					
 					new_range.substring_branching_suffix_length = m_length;
+					new_range.branch_point = new_range.substring_range_left;
 					add_match(new_range);
 					m_ranges.remove(m_index_list.get_i());
 					m_index_list.advance_and_mark_skipped();
@@ -374,7 +380,10 @@ namespace tribble { namespace detail {
 				else
 				{
 					if (new_range.is_substring_range_singular())
+					{
 						new_range.substring_branching_suffix_length = m_length;
+						new_range.branch_point = new_range.substring_range_left;
+					}
 					
 					auto const i(m_index_list.get_i());
 					m_ranges.set(i, new_range);
@@ -442,8 +451,9 @@ namespace tribble { namespace detail {
 			// Find substring start positions. Since the substrings were sorted,
 			// the start position is the previous lexicographic index. If the
 			// index points to the suffix "#$", the start position is the last index.
-			for (auto &idx : m_sorted_bwt_start_indices)
+			for (auto idx : m_sorted_bwt_start_indices)
 			{
+				// idx is an int_vector_reference.
 				assert(idx <= m_initial_range.substring_range_right);
 				if (m_initial_range.substring_range_left == idx)
 					idx = m_initial_range.substring_range_right;
