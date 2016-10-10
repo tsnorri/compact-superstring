@@ -20,20 +20,19 @@
 #include <algorithm>
 
 Superstring_callback::Superstring_callback() 
-: merges_done(0), n_strings(-1) {}
+:  UF(0), merges_done(0), n_strings(-1) {}
 
 bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_string, std::size_t overlap_length){
+    
+    //std::cout << "left = " << left_string << ", right = " << right_string << std::endl;    
 	assert(left_string < leftend.size());
 	assert(right_string < leftend.size());
 	assert(right_string < rightavailable.size());
     assert(rightavailable[right_string]);
 
-    //std::cout << "left = " << left_string << ", right = " << right_string << std::endl;
-
-    //assert(rightavailable[right_string] == true);
     if(leftend[left_string] != right_string){
         merges.push_back(std::make_tuple(left_string, right_string, overlap_length));
-        rightavailable[right_string] = false;
+        make_not_right_available(right_string);
         leftend[rightend[right_string]] = leftend[left_string];
         rightend[leftend[left_string]] = rightend[right_string];
         merges_done++;
@@ -61,8 +60,8 @@ void Superstring_callback::set_substring_count(std::size_t count){
         next[i] = i+1;
         rightavailable[i] = true;
     }
+    UF.initialize(n_strings);
 }
-
 
 bool Superstring_callback::callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end){
     assert(n_strings != -1);
@@ -98,14 +97,43 @@ bool Superstring_callback::callback(std::size_t read_lex_rank, std::size_t match
     
 }
 
+
+void Superstring_callback::make_not_right_available(std::size_t index){
+
+    
+    // the position of the next one-bit in right-available
+    std::size_t q = next[UF.find(index)];
+    
+    // Merge to the right if needed
+    if(index < n_strings-1 && rightavailable[index+1] == 0)
+        UF.doUnion(UF.find(index), UF.find(index+1));
+    
+    // Merge to the left
+    if(index > 0)
+        UF.doUnion(UF.find(index), UF.find(index-1));
+    
+    rightavailable[index] = 0;
+    next[UF.find(index)] = q;
+}
+
+
+
 std::size_t Superstring_callback::get_next_right_available(std::size_t index){
+    std::size_t k = UF.find(index);
+    if(k == n_strings) return k;
+    else return next[k];
+}
+
+/* Simple O(n^2) implementation for testing purposes
+std::size_t Superstring_callback::get_next_right_available(std::size_t index){
+
     for(std::size_t i = index+1; i < n_strings; i++){
 		assert(i < rightavailable.size());
         if(rightavailable[i]) 
             return i;
     }
     return n_strings;
-}
+}*/
 
 std::string Superstring_callback::build_final_superstring(std::vector<std::string> strings){
     if(strings.size() == 0) return "";

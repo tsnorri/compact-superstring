@@ -23,6 +23,7 @@
 #include <string>
 #include <tuple>
 #include "find_superstring.hh"
+#include "union_find.hh"
 
 class Superstring_callback : public find_superstring_match_callback {
   
@@ -35,15 +36,20 @@ public:
 	void set_substring_count(std::size_t count) override;
 	
 	std::string build_final_superstring(std::vector<std::string> strings); // Call after all prefix-suffix overlaps have been considered
-	    
+
 private:
 	
 	// Returns n_strings if not found, else the index of the next one-bit in rightavailable to the right of index
 	// Parameter index can be zero. In that case returns the first one-bit in the entire rightavailable array.
 	std::size_t get_next_right_available(std::size_t index);
 	
+	// Sets rightavailable[index] = 0, and updates the union-find structure
+	void make_not_right_available(std::size_t index);
+	
 	// Merges two strings if the merge would not create a cycle
 	bool try_merge(std::size_t left_string, std::size_t right_string, std::size_t overlap_length);
+	
+	UnionFind UF;
 	
 	std::size_t merges_done;
 	

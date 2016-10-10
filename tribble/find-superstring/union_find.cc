@@ -16,34 +16,52 @@
 
 #include "union_find.hh"
 #include <utility>
+#include <iostream>
 
 using namespace std;
 
-UnionFind::UnionFind(int64_t n_elements) : n_elements(n_elements), sizes(n_elements), parents(n_elements){
-    for(int64_t i = 0; i < n_elements; i++){
-        sizes[i] = 1;
-        parents[i] = i;
-    }
+UnionFind::UnionFind(int64_t n_elements){
+	initialize(n_elements);
+}
+
+void UnionFind::initialize(int64_t n_elements){
+	this-> n_elements = n_elements;
+	sizes.resize(n_elements);
+	parents.resize(n_elements);
+	for(int64_t i = 0; i < n_elements; i++){
+		sizes[i] = 1;
+		parents[i] = i;
+	}
 }
 
 int64_t UnionFind::find(int64_t id){
-    while(parents[id] != id) id = parents[id];
-    return id;
+	while(parents[id] != id) { // while not at root
+		path.push_back(id);
+		id = parents[id];
+	}
+	
+	// id is now root. Do path compression.
+	for(int64_t node : path) {
+		parents[node] = id;
+	}
+	path.clear();
+	
+	return id;
 }
 
 void UnionFind::doUnion(int64_t id_1, int64_t id_2){
-    int64_t x1 = find(id_1);
-    int64_t x2 = find(id_2);
-    if(x1 == x2) return; // Already in same set
-    if(sizes[x1] <= sizes[x2]){
-        parents[x1] = x2;
-        sizes[x2] += sizes[x1];
-    } else {
-        parents[x2] = x1;
-        sizes[x1] += sizes[x2];
-    }
+	int64_t x1 = find(id_1);
+	int64_t x2 = find(id_2);
+	if(x1 == x2) return; // Already in same set
+	if(sizes[x1] <= sizes[x2]){
+		parents[x1] = x2;
+		sizes[x2] += sizes[x1];
+	} else {
+		parents[x2] = x1;
+		sizes[x1] += sizes[x2];
+	}
 }
 
 int64_t UnionFind::getSize(int64_t id){
-    return sizes[find(id)];
+	return sizes[find(id)];
 }

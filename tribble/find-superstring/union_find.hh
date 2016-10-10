@@ -28,12 +28,16 @@ class UnionFind {
         UnionFind& operator = (const UnionFind&); // Assignment operator not implemented
         UnionFind (const UnionFind&); // Copy constructor not implemented
 
+        std::vector<int64_t> path; // Reusable space for path compression
+
     public:
         int64_t find(int64_t id); // Returns the identifier of the set that contains the parameter id
         void doUnion(int64_t id_1, int64_t id_2); // Merges the two sets given by the identifiers
         int64_t getSize(int64_t id); // Returns the size of the set with identified id
+        void initialize(int64_t n_elements); // Re-initializes the structure with n elements.
 
         UnionFind(int64_t n_elements);
+
 };
 
 #endif
