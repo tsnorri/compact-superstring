@@ -34,6 +34,7 @@ namespace tribble { namespace detail {
 		size_type substring_range_right{0};
 		size_type match_range_left{0};
 		size_type match_range_right{0};
+		size_type substring_branching_suffix_length{0};
 		
 		bwt_range() = default;
 		
@@ -62,10 +63,16 @@ namespace tribble { namespace detail {
 			substring_range_right = val;
 		}
 		
-		inline void backtrack_substring_with_lf(csa_type const &csa)
+		inline void substring_lf(csa_type const &csa)
 		{
 			auto const lf_val(csa.lf[substring_range_left]); // FIXME: check exact time.
 			set_substring_range_singular(lf_val);
+		}
+		
+		inline void substring_psi(csa_type const &csa)
+		{
+			auto const psi_val(csa.psi[substring_range_left]); // FIXME: check exact time.
+			set_substring_range_singular(psi_val);
 		}
 		
 		inline size_type backward_search_substring(csa_type const &csa, csa_type::char_type c)
@@ -87,8 +94,9 @@ namespace tribble { namespace detail {
 		sdsl::bit_vector	m_used_indices;
 #endif
 
-		sdsl::int_vector <> m_substring_ranges;	// Ranges that have '#' on the right.
-		sdsl::int_vector <> m_match_ranges;		// Ranges without the '#' on the right.
+		sdsl::int_vector <> m_substring_ranges;						// Ranges that have '#' on the right.
+		sdsl::int_vector <> m_match_ranges;							// Ranges without the '#' on the right.
+		sdsl::int_vector <> m_substring_branching_suffix_lengths;
 		
 	public:
 		bwt_range_array() = default;
@@ -98,7 +106,8 @@ namespace tribble { namespace detail {
 			m_used_indices(count, 0),
 #endif
 			m_substring_ranges(2 * count, 0, bits),
-			m_match_ranges(2 * count, 0, bits)
+			m_match_ranges(2 * count, 0, bits),
+			m_substring_branching_suffix_lengths(count, 0, bits)
 		{
 		}
 		
@@ -107,18 +116,20 @@ namespace tribble { namespace detail {
 #ifdef DEBUGGING_OUTPUT
 			assert(m_used_indices[k]);
 #endif
-			range.substring_range_left	= m_substring_ranges[2 * k];
-			range.substring_range_right	= m_substring_ranges[2 * k + 1];
-			range.match_range_left		= m_match_ranges[2 * k];
-			range.match_range_right		= m_match_ranges[2 * k + 1];
+			range.substring_range_left				= m_substring_ranges[2 * k];
+			range.substring_range_right				= m_substring_ranges[2 * k + 1];
+			range.match_range_left					= m_match_ranges[2 * k];
+			range.match_range_right					= m_match_ranges[2 * k + 1];
+			range.substring_branching_suffix_length	= m_substring_branching_suffix_lengths[k];
 		}
 		
 		inline void set(std::size_t const k, bwt_range const &range)
 		{
-			m_substring_ranges[2 * k]		= range.substring_range_left;
-			m_substring_ranges[2 * k + 1]	= range.substring_range_right;
-			m_match_ranges[2 * k]			= range.match_range_left;
-			m_match_ranges[2 * k + 1]		= range.match_range_right;
+			m_substring_ranges[2 * k]				= range.substring_range_left;
+			m_substring_ranges[2 * k + 1]			= range.substring_range_right;
+			m_match_ranges[2 * k]					= range.match_range_left;
+			m_match_ranges[2 * k + 1]				= range.match_range_right;
+			m_substring_branching_suffix_lengths[k]	= range.substring_branching_suffix_length;
 			
 #ifdef DEBUGGING_OUTPUT
 			m_used_indices[k]				= 1;
@@ -137,7 +148,7 @@ namespace tribble { namespace detail {
 		{
 			// m_used_indices does not exist if DEBUGGING_OUTPUT has not been defined.
 #ifdef DEBUGGING_OUTPUT
-			std::cerr << "Substring ranges:";
+			std::cerr << "Substring ranges:       ";
 			for (std::size_t i(0), count(m_used_indices.size()); i < count; ++i)
 			{
 				if (m_used_indices[i])
@@ -145,11 +156,19 @@ namespace tribble { namespace detail {
 			}
 			std::cerr << std::endl;
 			
-			std::cerr << "Match ranges:    ";
+			std::cerr << "Match ranges:           ";
 			for (std::size_t i(0), count(m_used_indices.size()); i < count; ++i)
 			{
 				if (m_used_indices[i])
 					std::cerr << " " << i << ": [" << m_match_ranges[2 * i] << ", " << m_match_ranges[2 * i + 1] << "]";
+			}
+			std::cerr << std::endl;
+			
+			std::cerr << "Branching suffix lengths:";
+			for (std::size_t i(0), count(m_used_indices.size()); i < count; ++i)
+			{
+				if (m_used_indices[i])
+					std::cerr << " " << m_substring_branching_suffix_lengths[i];
 			}
 			std::cerr << std::endl;
 #endif
@@ -179,6 +198,7 @@ namespace tribble { namespace detail {
 		bwt_range_array		m_ranges;
 		linked_list			m_index_list;
 		interval_symbols	m_is_buffer;
+		bwt_range			m_initial_range;
 		sdsl::int_vector <>	m_sorted_bwt_indices;
 		sdsl::int_vector <>	m_sorted_bwt_start_indices;
 		sdsl::int_vector <>	m_string_lengths;
@@ -205,6 +225,7 @@ namespace tribble { namespace detail {
 				bwt_range_array ranges(string_count, bits_for_n);
 				bwt_range initial_range(left, right, 0, csa_size - 1);
 				ranges.set(0, initial_range);
+				m_initial_range = initial_range;
 				
 				m_ranges = std::move(ranges);
 			}
@@ -240,10 +261,9 @@ namespace tribble { namespace detail {
 			auto const range_start(range.match_range_left);
 			m_sorted_bwt_indices[m_sorted_bwt_ptr] = range_start;
 			
-			// Find the start of the substring.
-			while (range.next_substring_leftmost_character(*m_csa) != m_sentinel)
-				range.backtrack_substring_with_lf(*m_csa);
-			range.backtrack_substring_with_lf(*m_csa);
+			// Find the end of the substring.
+			for (std::size_t i(0); i < range.substring_branching_suffix_length; ++i)
+				range.substring_sl(*m_csa);
 			
 			m_sorted_bwt_start_indices[m_sorted_bwt_ptr] = range.substring_range_left;
 			m_string_lengths[m_sorted_bwt_ptr] = m_length;
@@ -270,7 +290,7 @@ namespace tribble { namespace detail {
 			}
 			
 			// Look for the next character in the range that didn't begin with '#'.
-			range.backtrack_substring_with_lf(*m_csa);
+			range.substring_lf(*m_csa);
 			auto const match_count(range.backward_search_match(*m_csa, next_character));
 			assert(match_count);
 			if (range.is_match_range_singular())
@@ -346,12 +366,16 @@ namespace tribble { namespace detail {
 					assert(1 == substring_count);
 					assert(1 == match_count);
 					
+					new_range.substring_branching_suffix_length = m_length;
 					add_match(new_range);
 					m_ranges.remove(m_index_list.get_i());
 					m_index_list.advance_and_mark_skipped();
 				}
 				else
 				{
+					if (new_range.is_substring_range_singular())
+						new_range.substring_branching_suffix_length = m_length;
+					
 					auto const i(m_index_list.get_i());
 					m_ranges.set(i, new_range);
 					m_index_list.advance(substring_count);
@@ -413,6 +437,18 @@ namespace tribble { namespace detail {
 				}
 				
 				++m_length;
+			}
+			
+			// Find substring start positions. Since the substrings were sorted,
+			// the start position is the previous lexicographic index. If the
+			// index points to the suffix "#$", the start position is the last index.
+			for (auto &idx : m_sorted_bwt_start_indices)
+			{
+				assert(idx <= m_initial_range.substring_range_right);
+				if (m_initial_range.substring_range_left == idx)
+					idx = m_initial_range.substring_range_right;
+				else
+					--idx;
 			}
 		}
 	};
