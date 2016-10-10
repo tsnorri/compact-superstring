@@ -107,18 +107,8 @@ int main(int argc, char **argv)
 	}
 	else if (args_info.find_superstring_given)
 	{
-		/*auto cb = [](std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) -> bool {
-			std::cerr
-				<< "Found match for substring " << read_lex_rank << " of length " << match_length
-				<< ": [" << match_sa_begin << ", " << match_sa_end << "]" << std::endl;
-			return true;
-		};*/
-		
-		namespace p = std::placeholders;
-		
 		Superstring_callback cb(5); // TODO: 5 should be the number of reads
-		auto fn(std::bind(&Superstring_callback::callback, &cb, p::_1, p::_2, p::_3, p::_4));
-		find_suffixes(args_info.source_file_given ? args_info.source_file_arg : nullptr, '#', fn);
+		find_suffixes(args_info.source_file_given ? args_info.source_file_arg : nullptr, '#', cb);
 	}
 	else
 	{

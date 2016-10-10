@@ -123,7 +123,7 @@ void find_suffixes_with_sorted(
 					assert(cst.edge(node, 1 + parent_string_depth) == sentinel);	// edge takes potentially more time so just verify.
 					
 					// A match was found. Handle it.
-					bool const should_remove(match_callback(
+					bool const should_remove(match_callback.callback(
 						sorted_substring_start_indices[i - 1],
 						remaining_suffix_length,
 						cst.lb(match_node),
@@ -147,7 +147,7 @@ void find_suffixes_with_sorted(
 }
 
 
-void find_suffixes(char const *source_fname, char const sentinel, find_superstring_match_callback cb)
+void find_suffixes(char const *source_fname, char const sentinel, find_superstring_match_callback &cb)
 {
 	cst_type cst;
 
@@ -173,6 +173,8 @@ void find_suffixes(char const *source_fname, char const sentinel, find_superstri
 
 	std::cerr << "Sorting strings…" << std::endl;
 	sort_strings_by_length(cst.csa, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
+	
+	cb.set_substring_count(sorted_substrings.size());
 
 	std::cerr << "Matching prefixes and suffixes…" << std::endl;
 	find_suffixes_with_sorted(

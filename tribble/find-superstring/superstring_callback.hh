@@ -22,15 +22,17 @@
 #include <vector>
 #include <string>
 #include <tuple>
+#include "find_superstring.hh"
 
-class Superstring_callback{
+class Superstring_callback : public find_superstring_match_callback {
   
 public:
     
 	Superstring_callback(std::size_t n_strings);
 	
 	// Returns true if merge was successful, or if no more merges can be done
-	bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end);
+	bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) override;
+	void set_substring_count(std::size_t count) override;
 	
 	std::string build_final_superstring(std::vector<std::string> strings); // Call after all prefix-suffix overlaps have been considered
     

@@ -40,6 +40,10 @@ bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_
 }
 
 
+void Superstring_callback::set_substring_count(std::size_t count)
+{
+}
+
 
 bool Superstring_callback::callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end){
     if(merges_done >= n_strings - 1) return true; // No more merges can be done

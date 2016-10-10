@@ -30,14 +30,12 @@ typedef sdsl::csa_wt <wt_type, 1 << 20, 1 << 20>		csa_type;
 typedef sdsl::cst_sct3 <csa_type>						cst_type;
 typedef csa_type::size_type								size_type;
 
-typedef std::function <
-	bool(
-		std::size_t read_lex_rank,
-		std::size_t match_length,
-		std::size_t match_sa_begin,
-		std::size_t match_sa_end
-	)
-> find_superstring_match_callback;
+
+struct find_superstring_match_callback
+{
+	virtual void set_substring_count(std::size_t set_substring_count) = 0;
+	virtual bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) = 0;
+};
 
 extern "C" void create_index(std::istream &source_stream, char const sentinel);
 extern "C" void sort_strings_by_length(
@@ -47,7 +45,7 @@ extern "C" void sort_strings_by_length(
 	/* out */ sdsl::int_vector <> &sorted_bwt_start_indices,
 	/* out */ sdsl::int_vector <> &string_lengths
 );
-extern "C" void find_suffixes(char const *source_fname, char const sentinel, find_superstring_match_callback cb);
+extern "C" void find_suffixes(char const *source_fname, char const sentinel, find_superstring_match_callback &cb);
 extern "C" void visualize(std::istream &stream);
 extern "C" void handle_error();
 
