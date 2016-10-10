@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 	ios::stream <ios::file_descriptor_sink> mem_usage_stream;
 	if (args_info.output_memory_usage_given)
 	{
-		int fd(open(args_info.output_memory_usage_arg, O_WRONLY | O_CREAT | O_EXCL));
+		int fd(open(args_info.output_memory_usage_arg, O_WRONLY | O_CREAT | O_EXCL, S_IRWXU));
 		if (-1 == fd)
 			handle_error();
 		

@@ -23,12 +23,14 @@ Superstring_callback::Superstring_callback()
 : merges_done(0), n_strings(-1) {}
 
 bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_string, std::size_t overlap_length){
+   // std::cout << "leftend size: " << leftend.size() << std::endl;
+   // std::cout << "right_string: " << right_string << std::endl;
 	assert(left_string < leftend.size());
 	assert(right_string < leftend.size());
 	assert(right_string < rightavailable.size());
     
-    for(int x : rightavailable) std::cout << x; std::cout << std::endl;
-    std::cout << "left = " << left_string << ", right = " << right_string << std::endl;
+    //for(int x : rightavailable) std::cout << x; std::cout << std::endl;
+    //std::cout << "left = " << left_string << ", right = " << right_string << std::endl;
 
     //assert(rightavailable[right_string] == true);
     if(leftend[right_string] != left_string){
@@ -63,9 +65,9 @@ bool Superstring_callback::callback(std::size_t read_lex_rank, std::size_t match
     assert(read_lex_rank != 0);
     
     // Change to 0-based indexing
-    read_lex_rank--; 
-    match_sa_begin--;
-    match_sa_end--;
+    read_lex_rank -= 2; 
+    match_sa_begin -= 2;
+    match_sa_end -= 2;
     
     std::size_t k = get_next_right_available(match_sa_begin-1);
     if(k > match_sa_end) {
