@@ -66,6 +66,7 @@ public:
 		for (auto const &seq : m_sequences)
 		{
 			// Write the sequence to the specified file.
+			*m_output_stream << m_sentinel;
 			std::copy(seq.cbegin(), seq.cend(), std::ostream_iterator <char>(*m_output_stream));
 		}
 		
