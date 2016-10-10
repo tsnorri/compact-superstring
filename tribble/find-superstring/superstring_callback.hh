@@ -35,11 +35,7 @@ public:
 	void set_substring_count(std::size_t count) override;
 	
 	std::string build_final_superstring(std::vector<std::string> strings); // Call after all prefix-suffix overlaps have been considered
-	
-	~Superstring_callback(){
-		std::cout << "destructor" << std::endl;
-	}
-    
+	    
 private:
 	
 	// Returns n_strings if not found, else the index of the next one-bit in rightavailable to the right of index
