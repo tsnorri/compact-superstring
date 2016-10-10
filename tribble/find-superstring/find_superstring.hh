@@ -33,6 +33,7 @@ typedef csa_type::size_type								size_type;
 
 struct find_superstring_match_callback
 {
+	virtual ~find_superstring_match_callback() {}
 	virtual void set_substring_count(std::size_t set_substring_count) = 0;
 	virtual bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) = 0;
 };

@@ -107,7 +107,7 @@ int main(int argc, char **argv)
 	}
 	else if (args_info.find_superstring_given)
 	{
-		Superstring_callback cb(5); // TODO: 5 should be the number of reads
+		Superstring_callback cb; // TODO: 5 should be the number of reads
 		find_suffixes(args_info.source_file_given ? args_info.source_file_arg : nullptr, '#', cb);
 	}
 	else

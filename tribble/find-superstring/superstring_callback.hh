@@ -28,13 +28,17 @@ class Superstring_callback : public find_superstring_match_callback {
   
 public:
     
-	Superstring_callback(std::size_t n_strings);
+	Superstring_callback();
 	
 	// Returns true if merge was successful, or if no more merges can be done
 	bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) override;
 	void set_substring_count(std::size_t count) override;
 	
 	std::string build_final_superstring(std::vector<std::string> strings); // Call after all prefix-suffix overlaps have been considered
+	
+	~Superstring_callback(){
+		std::cout << "destructor" << std::endl;
+	}
     
 private:
 	
@@ -47,7 +51,7 @@ private:
 	
 	std::size_t merges_done;
 	
-	std::size_t n_strings;
+	int64_t n_strings;
 	// todo: use sdsl containers
 	std::vector<std::size_t> leftend;
 	std::vector<std::size_t> next;

@@ -19,14 +19,8 @@
 #include <cassert>
 #include <algorithm>
 
-Superstring_callback::Superstring_callback(std::size_t n_strings) 
-: merges_done(0), n_strings(n_strings), leftend(n_strings), next(n_strings), rightavailable(n_strings){
-    for(std::size_t i = 0; i < n_strings; i++){
-        leftend[i] = i;
-        next[i] = i+1;
-        rightavailable[i] = true;
-    }
-}
+Superstring_callback::Superstring_callback() 
+: merges_done(0), n_strings(-1) {}
 
 bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_string, std::size_t overlap_length){
     if(leftend[right_string] != left_string){
@@ -40,12 +34,21 @@ bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_
 }
 
 
-void Superstring_callback::set_substring_count(std::size_t count)
-{
+void Superstring_callback::set_substring_count(std::size_t count){
+    n_strings = count;
+    leftend.resize(n_strings);
+    next.resize(n_strings);
+    rightavailable.resize(n_strings);
+    for(std::size_t i = 0; i < n_strings; i++){
+        leftend[i] = i;
+        next[i] = i+1;
+        rightavailable[i] = true;
+    }
 }
 
 
 bool Superstring_callback::callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end){
+    assert(n_strings != -1);
     if(merges_done >= n_strings - 1) return true; // No more merges can be done
     
     std::cout << "CALLBACK " << read_lex_rank << " " << match_length << " " << match_sa_begin << " " << match_sa_end << std::endl;
