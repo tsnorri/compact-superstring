@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 			return true;
 		};
 
-		find_superstring(args_info.source_file_given ? args_info.source_file_arg : nullptr, '#', cb);
+		find_suffixes(args_info.source_file_given ? args_info.source_file_arg : nullptr, '#', cb);
 	}
 	else
 	{

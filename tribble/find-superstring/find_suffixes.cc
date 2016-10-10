@@ -36,7 +36,7 @@ int open_file(char const *fname)
 }
 
 
-void find_superstring_with_sorted(
+void find_suffixes_with_sorted(
 	cst_type const &cst,
 	char const sentinel,
 	sdsl::int_vector <> const &sorted_substrings,
@@ -147,7 +147,7 @@ void find_superstring_with_sorted(
 }
 
 
-void find_superstring(char const *source_fname, char const sentinel, find_superstring_match_callback cb)
+void find_suffixes(char const *source_fname, char const sentinel, find_superstring_match_callback cb)
 {
 	cst_type cst;
 
@@ -174,8 +174,8 @@ void find_superstring(char const *source_fname, char const sentinel, find_supers
 	std::cerr << "Sorting strings…" << std::endl;
 	sort_strings_by_length(cst.csa, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
 
-	std::cerr << "Finding matches…" << std::endl;
-	find_superstring_with_sorted(
+	std::cerr << "Matching prefixes and suffixes…" << std::endl;
+	find_suffixes_with_sorted(
 		cst,
 		sentinel,
 		sorted_substrings,

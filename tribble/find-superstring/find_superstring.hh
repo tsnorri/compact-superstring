@@ -47,7 +47,7 @@ extern "C" void sort_strings_by_length(
 	/* out */ sdsl::int_vector <> &sorted_bwt_start_indices,
 	/* out */ sdsl::int_vector <> &string_lengths
 );
-extern "C" void find_superstring(char const *source_fname, char const sentinel, find_superstring_match_callback cb);
+extern "C" void find_suffixes(char const *source_fname, char const sentinel, find_superstring_match_callback cb);
 extern "C" void handle_error();
 
 #endif

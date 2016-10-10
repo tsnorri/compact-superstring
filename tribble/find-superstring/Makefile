@@ -9,7 +9,7 @@ CPPFLAGS		+=	-DDEBUGGING_OUTPUT
 OBJECTS			=	main.o \
 					cmdline.o \
 					create_index.o \
-					find_superstring.o \
+					find_suffixes.o \
 					sort_strings.o \
 					vector_source.o
 
