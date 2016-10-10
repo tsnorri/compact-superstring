@@ -33,6 +33,7 @@ bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_
         merges.push_back(std::make_tuple(left_string, right_string, overlap_length));
         rightavailable[right_string] = false;
         leftend[right_string] = leftend[left_string];
+        std::cout << "Merged " << left_string + 1 << " " << right_string + 1 << std::endl;
         return true;
     }
     return false;
@@ -43,7 +44,7 @@ bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_
 bool Superstring_callback::callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end){
     if(merges_done >= n_strings - 1) return true; // No more merges can be done
     
-    //std::cout << read_lex_rank << " " << match_length << " " << match_sa_begin << " " << match_sa_end << std::endl;
+    std::cout << "CALLBACK " << read_lex_rank << " " << match_length << " " << match_sa_begin << " " << match_sa_end << std::endl;
     assert(read_lex_rank != 0);
     read_lex_rank--; // Change to 0-based indexing
     
