@@ -4,7 +4,7 @@ include ../../common.mk
 TARGET			=	find-superstring
 
 LDFLAGS			+=	$(BOOST_IOSTREAMS_LIB)
-CPPFLAGS		+=	-DDEBUGGING_OUTPUT
+# CPPFLAGS		+=	-DDEBUGGING_OUTPUT
 
 OBJECTS			=	main.o \
 					cmdline.o \
