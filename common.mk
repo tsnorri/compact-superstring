@@ -21,6 +21,7 @@ OPT_FLAGS			+= -fstrict-aliasing -fstrict-overflow -g
 OPT_FLAGS_DEBUG		?= -O0
 OPT_FLAGS_RELEASE	?= -march=native -O2 -ftree-vectorize -foptimize-sibling-calls
 CPP_FLAGS_DEBUG		= -DSDSL_DEBUG
+CPP_FLAGS_RELEASE	= -DNDEBUG
 
 CFLAGS		= -c -std=c99 $(OPT_FLAGS) $(WARNING_FLAGS)
 CXXFLAGS	= -c $(OPT_FLAGS) $(LOCAL_CXXFLAGS) $(WARNING_FLAGS)
@@ -39,10 +40,10 @@ LDFLAGS		=	-L../../lib/sdsl/build/lib \
 
 ifeq ($(BUILD_STYLE),release)
 	OPT_FLAGS	+= $(OPT_FLAGS_RELEASE)
-	CPP_FLAGS	+= $(CPP_FLAGS_RELEASE)
+	CPPFLAGS	+= $(CPP_FLAGS_RELEASE)
 else
 	OPT_FLAGS	+= $(OPT_FLAGS_DEBUG)
-	CPP_FLAGS	+= $(CPP_FLAGS_DEBUG)
+	CPPFLAGS	+= $(CPP_FLAGS_DEBUG)
 endif
 
 ifeq ($(EXTRA_WARNINGS),1)
