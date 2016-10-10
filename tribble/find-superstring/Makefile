@@ -13,7 +13,8 @@ OBJECTS			=	cmdline.o \
 					sort_strings.o \
 					superstring_callback.o \
 					vector_source.o \
-					visualize.o
+					visualize.o \
+					union_find.o
 
 all: $(TARGET)
 
