@@ -11,7 +11,8 @@ OBJECTS			=	main.o \
 					create_index.o \
 					find_suffixes.o \
 					sort_strings.o \
-					vector_source.o
+					vector_source.o \
+					visualize.o
 
 
 all: $(TARGET)
