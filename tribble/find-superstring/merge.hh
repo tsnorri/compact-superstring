@@ -50,7 +50,8 @@ namespace tribble { namespace detail {
 	
 	
 	// std::sort requires writable iterators, so we provide ones by using this proxy.
-	// To support the bare minimum, only assignment operators of proxy are usable.
+	// To support the bare minimum, only assignment operators of the proxy (and not
+	// those of the data members) are usable.
 	// The representation isn't particularly efficient.
 	class merge_proxy
 	{
