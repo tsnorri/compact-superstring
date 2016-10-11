@@ -50,9 +50,16 @@ bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_
 
 void Superstring_callback::set_substring_count(std::size_t count){
     n_strings = count;
+	std::size_t const bits_for_count(1 + sdsl::bits::hi(count));
+	std::size_t const bits_for_next(1 + sdsl::bits::hi(1 + count));
+	
+	leftend.width(bits_for_count);
+	rightend.width(bits_for_count);
+	next.width(bits_for_next);
     leftend.resize(n_strings);
     rightend.resize(n_strings);
     next.resize(n_strings);
+	
     rightavailable.resize(n_strings);
     for(std::size_t i = 0; i < n_strings; i++){
         leftend[i] = i;
