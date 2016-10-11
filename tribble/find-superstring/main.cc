@@ -83,10 +83,11 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	
 	// See if memory monitor should be used.
+	bool const log_memory_usage(args_info.output_memory_usage_given);
 	ios::stream <ios::file_descriptor_sink> mem_usage_stream;
-	if (args_info.output_memory_usage_given)
+	if (log_memory_usage)
 	{
-		int fd(open(args_info.output_memory_usage_arg, O_WRONLY | O_CREAT | O_EXCL, S_IRWXU));
+		int fd(open(args_info.output_memory_usage_arg, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR));
 		if (-1 == fd)
 			handle_error();
 		
@@ -116,7 +117,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
-	if (args_info.output_memory_usage_given)
+	if (log_memory_usage)
 	{
 		sdsl::memory_monitor::stop();
 		sdsl::memory_monitor::write_memory_log <sdsl::HTML_FORMAT>(mem_usage_stream);

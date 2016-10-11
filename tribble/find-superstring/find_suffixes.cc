@@ -153,36 +153,45 @@ void find_suffixes(char const *source_fname, char const sentinel, find_superstri
 
 	// Load the CST.
 	std::cerr << "Loading the CST…" << std::endl;
-
-	if (source_fname)
 	{
-		int fd(open_file(source_fname));
-		source_stream_type ds_stream(fd, ios::close_handle);
-		cst.load(ds_stream);
-	}
-	else
-	{
-		cst.load(std::cin);
+		auto const event(sdsl::memory_monitor::event("Load CST"));
+		
+		if (source_fname)
+		{
+			int fd(open_file(source_fname));
+			source_stream_type ds_stream(fd, ios::close_handle);
+			cst.load(ds_stream);
+		}
+		else
+		{
+			cst.load(std::cin);
+		}
 	}
 
 	// Find the superstring.
 	// Sort the strings by length.
+	std::cerr << "Sorting strings…" << std::endl;
+
 	sdsl::int_vector <> sorted_substrings;
 	sdsl::int_vector <> sorted_substring_start_indices;
 	sdsl::int_vector <> substring_lengths;
-
-	std::cerr << "Sorting strings…" << std::endl;
-	sort_strings_by_length(cst.csa, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
-	
-	cb.set_substring_count(sorted_substrings.size());
+	{
+		auto const event(sdsl::memory_monitor::event("Sort strings"));
+		sort_strings_by_length(cst.csa, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
+		cb.set_substring_count(sorted_substrings.size());
+	}
 
 	std::cerr << "Matching prefixes and suffixes…" << std::endl;
-	find_suffixes_with_sorted(
-		cst,
-		sentinel,
-		sorted_substrings,
-		sorted_substring_start_indices,
-		substring_lengths,
-		cb
-	);
+	{
+		auto const event(sdsl::memory_monitor::event("Match strings"));
+		
+		find_suffixes_with_sorted(
+			cst,
+			sentinel,
+			sorted_substrings,
+			sorted_substring_start_indices,
+			substring_lengths,
+			cb
+		);
+	}
 }
