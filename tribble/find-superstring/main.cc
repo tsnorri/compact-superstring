@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 	}
 	else if (args_info.find_superstring_given)
 	{
-		Superstring_callback cb; // TODO: 5 should be the number of reads
+		tribble::Superstring_callback cb;
 		find_suffixes(args_info.source_file_given ? args_info.source_file_arg : nullptr, '#', cb);
 	}
 	else

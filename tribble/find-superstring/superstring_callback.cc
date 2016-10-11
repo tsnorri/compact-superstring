@@ -19,6 +19,9 @@
 #include <cassert>
 #include <algorithm>
 
+
+using namespace tribble;
+
 Superstring_callback::Superstring_callback() 
 :  UF(0), merges_done(0), n_strings(-1) {}
 
@@ -31,7 +34,8 @@ bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_
     assert(rightavailable[right_string]);
 
     if(leftend[left_string] != right_string){
-        merges.push_back(std::make_tuple(left_string, right_string, overlap_length));
+		detail::merge merge(left_string, right_string, overlap_length);
+		merges.set(merges_done, merge);
         make_not_right_available(right_string);
         leftend[rightend[right_string]] = leftend[left_string];
         rightend[leftend[left_string]] = rightend[right_string];
@@ -56,11 +60,18 @@ void Superstring_callback::set_substring_count(std::size_t count){
 	leftend.width(bits_for_count);
 	rightend.width(bits_for_count);
 	next.width(bits_for_next);
-    leftend.resize(n_strings);
+	
+	leftend.resize(n_strings);
     rightend.resize(n_strings);
     next.resize(n_strings);
 	
-    rightavailable.resize(n_strings);
+	rightavailable.resize(n_strings);
+
+	{
+		detail::merge_array temp(count, bits_for_count);
+		merges = std::move(temp);
+	}
+	
     for(std::size_t i = 0; i < n_strings; i++){
         leftend[i] = i;
         rightend[i] = i;
@@ -146,7 +157,7 @@ std::string Superstring_callback::build_final_superstring(std::vector<std::strin
     if(strings.size() == 0) return "";
     if(strings.size() == 1) return strings[0];
     
-    std::sort(merges.begin(), merges.end());
+	std::sort(merges.begin(), merges.begin() + merges_done);
     std::size_t current_string_idx = n_strings;
     
     // Initilize current_string_idx to the first string in the final superstring
@@ -163,13 +174,10 @@ std::string Superstring_callback::build_final_superstring(std::vector<std::strin
     std::size_t current_overlap_length;
     std::string superstring;
     for(std::size_t i = 0; i < n_strings - 1; i++){
-        std::size_t left_string_idx = std::get<0> (merges[current_string_idx]);
-        std::size_t right_string_idx = std::get<1> (merges[current_string_idx]);
-        std::size_t overlap = std::get<1> (merges[current_string_idx]);
-        
-        superstring += strings[left_string_idx].substr(strings[left_string_idx].size() - overlap);
-        if(i == n_strings - 2) superstring += strings[right_string_idx]; // Last iteration
-        left_string_idx = right_string_idx;
+		detail::merge merge;
+		merges.get(current_string_idx, merge);
+        superstring += strings[merge.left].substr(strings[merge.left].size() - merge.length);
+        if(i == n_strings - 2) superstring += strings[merge.right]; // Last iteration
     }
     
     return superstring;

@@ -23,8 +23,11 @@
 #include <string>
 #include <tuple>
 #include "find_superstring.hh"
+#include "merge.hh"
 #include "union_find.hh"
 
+
+namespace tribble {
 class Superstring_callback : public find_superstring_match_callback {
   
 public:
@@ -49,9 +52,9 @@ private:
 	// Merges two strings if the merge would not create a cycle
 	bool try_merge(std::size_t left_string, std::size_t right_string, std::size_t overlap_length);
 	
+	// todo: use sdsl containers
 	UnionFind UF;
 	
-	// todo: use sdsl containers
 	std::size_t merges_done;
 	
 	int64_t n_strings;
@@ -59,9 +62,9 @@ private:
 	sdsl::int_vector <> rightend;
 	sdsl::int_vector <> next;
 	sdsl::bit_vector rightavailable;
-	// todo: use sdsl containers
-	std::vector<std::tuple<std::size_t,std::size_t,std::size_t> > merges; // triples (left read, right read, overlap length)
 	
+	detail::merge_array merges;
 };
+}
 
 #endif
