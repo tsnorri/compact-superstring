@@ -93,7 +93,13 @@ bool Superstring_callback::callback(std::size_t read_lex_rank, std::size_t match
     match_sa_begin -= 2;
     match_sa_end -= 2;
     
-    std::size_t k = get_next_right_available(match_sa_begin-1);
+    std::size_t k; // Position of the next one-bit in right-available
+    if(match_sa_begin > 0) k = get_next_right_available(match_sa_begin-1);
+	else {
+		if(rightavailable[0] == 1) k = 0;
+		else k = get_next_right_available(match_sa_begin);
+	}
+	
     if(k > match_sa_end) {
         // Next one is outside of the suffix array interval, or not found at all
         return false;
