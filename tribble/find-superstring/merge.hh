@@ -18,7 +18,7 @@
 #ifndef TRIBBLE_MERGE_HH
 #define TRIBBLE_MERGE_HH
 
-#include <boost/core/enable_if.hpp>
+#include "boost_enable_if.hh"
 #include <boost/iterator/iterator_facade.hpp>
 
 
