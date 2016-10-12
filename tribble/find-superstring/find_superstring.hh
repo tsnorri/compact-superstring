@@ -22,8 +22,15 @@
 #include <sdsl/cst_sct3.hpp>
 
 #ifndef DEBUGGING_OUTPUT
-#define DEBUGGING_OUTPUT 0
+#	define DEBUGGING_OUTPUT 0
 #endif
+
+#ifdef EXPENSIVE_ASSERTIONS
+#	define expensive_assert(x) assert((x))
+#else
+#	define expensive_assert(x) ((void)0)
+#endif
+
 
 typedef sdsl::wt_huff <>							wt_type;
 typedef sdsl::csa_wt <wt_type, 1 << 20, 1 << 20>	csa_type;

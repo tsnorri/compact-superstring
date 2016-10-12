@@ -120,7 +120,7 @@ void find_suffixes_with_sorted(
 				auto const match_node(cst.wl(parent, sentinel));	// O(t_rank_BWT) time.
 				if (root != match_node)
 				{
-					assert(cst.edge(node, 1 + parent_string_depth) == sentinel);	// edge takes potentially more time so just verify.
+					expensive_assert(cst.edge(node, 1 + parent_string_depth) == sentinel);	// edge takes potentially more time so just verify.
 					
 					// A match was found. Handle it.
 					bool const should_remove(match_callback.callback(
@@ -170,13 +170,13 @@ void find_suffixes(char const *source_fname, char const sentinel, find_superstri
 
 	// Find the superstring.
 	// Sort the strings by length.
-	std::cerr << "Sorting strings…" << std::endl;
+	std::cerr << "Sorting the sequences by unique suffix length…" << std::endl;
 
 	sdsl::int_vector <> sorted_substrings;
 	sdsl::int_vector <> sorted_substring_start_indices;
 	sdsl::int_vector <> substring_lengths;
 	{
-		auto const event(sdsl::memory_monitor::event("Sort strings"));
+		auto const event(sdsl::memory_monitor::event("Sort sequences"));
 		sort_strings_by_length(cst.csa, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
 		cb.set_substring_count(sorted_substrings.size());
 	}
