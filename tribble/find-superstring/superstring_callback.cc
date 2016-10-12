@@ -177,6 +177,7 @@ std::string Superstring_callback::build_final_superstring(std::vector<std::strin
 		detail::merge merge;
 		merges.get(current_string_idx, merge);
         superstring += strings[merge.left].substr(strings[merge.left].size() - merge.length);
+		current_string_idx = merge.right;
         if(i == n_strings - 2) superstring += strings[merge.right]; // Last iteration
     }
     
