@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2016 Jarno Alanko
+ Copyright (c) 2016 Jarno Alanko, Tuukka Norri
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
@@ -18,40 +18,44 @@
 #include <utility>
 #include <iostream>
 
-using namespace std;
 
-UnionFind::UnionFind(int64_t n_elements){
-	initialize(n_elements);
-}
-
-void UnionFind::initialize(int64_t n_elements){
-	this-> n_elements = n_elements;
+void UnionFind::initialize(size_type n_elements){
+	auto const bits(bits_for_n(n_elements));
+	this->n_elements = n_elements;
+	
+	sizes.width(bits);
+	parents.width(bits);
 	sizes.resize(n_elements);
 	parents.resize(n_elements);
-	for(int64_t i = 0; i < n_elements; i++){
+	path.width(bits);
+	path.resize(n_elements);
+	
+	for(size_type i = 0; i < n_elements; i++){
 		sizes[i] = 1;
 		parents[i] = i;
 	}
 }
 
-int64_t UnionFind::find(int64_t id){
+auto UnionFind::find(size_type id) -> size_type {
+	size_type count(0);
 	while(parents[id] != id) { // while not at root
-		path.push_back(id);
+		path[count] = id;
 		id = parents[id];
+		++count;
 	}
 	
 	// id is now root. Do path compression.
-	for(int64_t node : path) {
+	for (std::size_t i(0); i < count; ++i) {
+		auto const node(path[i]);
 		parents[node] = id;
 	}
-	path.clear();
 	
 	return id;
 }
 
-void UnionFind::doUnion(int64_t id_1, int64_t id_2){
-	int64_t x1 = find(id_1);
-	int64_t x2 = find(id_2);
+void UnionFind::doUnion(size_type id_1, size_type id_2){
+	size_type x1 = find(id_1);
+	size_type x2 = find(id_2);
 	if(x1 == x2) return; // Already in same set
 	if(sizes[x1] <= sizes[x2]){
 		parents[x1] = x2;
@@ -62,6 +66,6 @@ void UnionFind::doUnion(int64_t id_1, int64_t id_2){
 	}
 }
 
-int64_t UnionFind::getSize(int64_t id){
+auto UnionFind::getSize(size_type id) -> size_type {
 	return sizes[find(id)];
 }
