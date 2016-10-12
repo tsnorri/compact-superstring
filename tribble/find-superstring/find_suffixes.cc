@@ -20,6 +20,7 @@
 #include "find_superstring.hh"
 #include "linked_list.hh"
 #include "node_array.hh"
+#include "timer.hh"
 
 namespace ios = boost::iostreams;
 
@@ -152,9 +153,10 @@ void find_suffixes(char const *source_fname, char const sentinel, find_superstri
 	cst_type cst;
 
 	// Load the CST.
-	std::cerr << "Loading the CST…" << std::endl;
+	std::cerr << "Loading the CST…" << std::flush;
 	{
 		auto const event(sdsl::memory_monitor::event("Load CST"));
+		tribble::timer timer;
 		
 		if (source_fname)
 		{
@@ -166,24 +168,33 @@ void find_suffixes(char const *source_fname, char const sentinel, find_superstri
 		{
 			cst.load(std::cin);
 		}
+		
+		timer.stop();
+		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
 	}
 
 	// Find the superstring.
 	// Sort the strings by length.
-	std::cerr << "Sorting the sequences by unique suffix length…" << std::endl;
+	std::cerr << "Sorting the sequences by unique suffix length…" << std::flush;
 
 	sdsl::int_vector <> sorted_substrings;
 	sdsl::int_vector <> sorted_substring_start_indices;
 	sdsl::int_vector <> substring_lengths;
 	{
 		auto const event(sdsl::memory_monitor::event("Sort sequences"));
+		tribble::timer timer;
+		
 		sort_strings_by_length(cst.csa, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
 		cb.set_substring_count(sorted_substrings.size());
+		
+		timer.stop();
+		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
 	}
 
-	std::cerr << "Matching prefixes and suffixes…" << std::endl;
+	std::cerr << "Matching prefixes and suffixes…" << std::flush;
 	{
 		auto const event(sdsl::memory_monitor::event("Match strings"));
+		tribble::timer timer;
 		
 		find_suffixes_with_sorted(
 			cst,
@@ -193,5 +204,8 @@ void find_suffixes(char const *source_fname, char const sentinel, find_superstri
 			substring_lengths,
 			cb
 		);
+		
+		timer.stop();
+		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
 	}
 }

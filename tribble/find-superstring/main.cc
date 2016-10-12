@@ -22,21 +22,14 @@
 #include "cmdline.h"
 #include "find_superstring.hh"
 #include "superstring_callback.hh"
+#include "timer.hh"
 
 
-namespace chrono = std::chrono;
 namespace ios = boost::iostreams;
 
 
 // Timing with wallclock.
-static chrono::milliseconds s_start_timestamp{};
-
-
-// Get the current time in milliseconds.
-chrono::milliseconds timestamp_ms_now()
-{
-	return chrono::duration_cast <chrono::milliseconds>(chrono::system_clock::now().time_since_epoch());
-}
+static tribble::timer s_timer;
 
 
 void handle_error()
@@ -50,8 +43,8 @@ void handle_error()
 // Report the elapsed time at exit.
 void handle_atexit()
 {
-	chrono::milliseconds end_timestamp(timestamp_ms_now());
-	std::cerr << "Milliseconds elapsed: " << (end_timestamp - s_start_timestamp).count() << std::endl;
+	s_timer.stop();
+	std::cerr << "Total time elapsed: " << s_timer.ms_elapsed() << " ms." << std::endl;
 }
 
 
@@ -75,7 +68,6 @@ void open_source_file_and_execute(gengetopt_args_info const &args_info, std::fun
 
 int main(int argc, char **argv)
 {
-	s_start_timestamp = timestamp_ms_now();
 	std::atexit(handle_atexit);
 
 	gengetopt_args_info args_info;
