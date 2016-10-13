@@ -27,25 +27,19 @@ Superstring_callback::Superstring_callback()
 
 bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_string, std::size_t overlap_length){
     
-    //std::cout << "left = " << left_string << ", right = " << right_string << std::endl;    
 	assert(left_string < leftend.size());
 	assert(right_string < leftend.size());
 	assert(right_string < rightavailable.size());
     assert(rightavailable[right_string]);
 
     if(leftend[left_string] != right_string){
-		detail::merge merge(left_string, right_string, overlap_length);
-		merges.set(merges_done, merge);
+		string_successor[left_string] = right_string;
+		overlap_lengths[left_string] = overlap_length; 
         make_not_right_available(right_string);
         leftend[rightend[right_string]] = leftend[left_string];
         rightend[leftend[left_string]] = rightend[right_string];
         merges_done++;
-        //std::cout << "leftend[" << right_string << "] = leftend[" << left_string << "]" << std::endl;
-        //std::cout << "leftend[" << right_string << "] = " << leftend[left_string] << std::endl;
-        //for(int x : rightavailable) std::cout << x; std::cout << std::endl;
-        //std::cout << "leftend:  "; for(int x : leftend) std::cout << x; std::cout << std::endl;
-        //std::cout << "rightend: "; for(int x : rightend) std::cout << x; std::cout << std::endl;
-        std::cout << "Merged " << left_string << " " << right_string << std::endl;
+        //std::cout << "Merged " << left_string << " " << right_string << std::endl;
         return true;
     }
     return false;
@@ -57,26 +51,28 @@ void Superstring_callback::set_substring_count(std::size_t count){
 	std::size_t const bits_for_count(1 + sdsl::bits::hi(count));
 	std::size_t const bits_for_next(1 + sdsl::bits::hi(1 + count));
 	
+	overlap_lengths.width(40); // TODO: max string length
+	string_successor.width(bits_for_count + 1);
 	leftend.width(bits_for_count);
 	rightend.width(bits_for_count);
 	next.width(bits_for_next);
 	
+	overlap_lengths.resize(n_strings);
+	string_successor.resize(n_strings);
 	leftend.resize(n_strings);
     rightend.resize(n_strings);
     next.resize(n_strings);
 	
 	rightavailable.resize(n_strings);
-
-	{
-		detail::merge_array temp(count, bits_for_count);
-		merges = std::move(temp);
-	}
 	
     for(std::size_t i = 0; i < n_strings; i++){
+		overlap_lengths[i] = 0;
+		string_successor[i] = n_strings;
         leftend[i] = i;
         rightend[i] = i;
         next[i] = i+1;
         rightavailable[i] = true;
+		
     }
     UF.initialize(n_strings);
 }
@@ -122,7 +118,7 @@ bool Superstring_callback::callback(std::size_t read_lex_rank, std::size_t match
     assert(n_strings != -1);
     if(merges_done >= n_strings - 1) return true; // No more merges can be done
     
-    std::cout << "CALLBACK " << read_lex_rank << " " << match_length << " " << match_sa_begin << " " << match_sa_end << std::endl;
+    //std::cout << "CALLBACK " << read_lex_rank << " " << match_length << " " << match_sa_begin << " " << match_sa_end << std::endl;
     assert(read_lex_rank != 0);
     
     // Change to 0-based indexing
@@ -199,19 +195,34 @@ std::size_t Superstring_callback::get_next_right_available(std::size_t index){
 void Superstring_callback::write_string(int64_t string_start, int64_t skip, std::ostream& out, sdsl::int_vector<0>& concatenation){
 	int64_t k = string_start;
 	char c = alphabet.comp2char[concatenation[k]];
-	std::cout << string_start << " " << skip << " " << c << std::endl;
-	for(int i = 0; i < concatenation.size(); i++) std::cout << alphabet.comp2char[concatenation[i]]; std::cout << std::endl;
 	while(c != '#'){
 		if(skip > 0) skip--;
-		//else out << c;
+		else out << c;
 		
 		k++;
 		c = alphabet.comp2char[concatenation[k]];
 	}
 }
 
-void Superstring_callback::build_final_superstring(std::ostream& out){
+void Superstring_callback::do_path(int64_t start_string, std::ostream& out, sdsl::int_vector<0>& concatenation, sdsl::int_vector<0>& string_start_points){
+    // Concatenate all strings putting in the overlapping region of adjacent strings only once
+    // Write out the first string as a whole
+	write_string(string_start_points[start_string], 0, out, concatenation);
 	
+	int64_t current_string_idx = start_string;
+	while(string_successor[current_string_idx] != n_strings){ // While there exists a successor
+		int64_t left_string = current_string_idx;
+		int64_t right_string = string_successor[current_string_idx];
+		int64_t overlap = overlap_lengths[left_string];
+		
+		// Write the right string skipping the first 'overlap' characters
+		write_string(string_start_points[right_string], overlap, out, concatenation);
+		current_string_idx = right_string;
+    }	
+}
+
+void Superstring_callback::build_final_superstring(std::ostream& out){
+
 	// Assuming the stream out contains the concatenation of all strings
 	// separated by the '#' character i.e.
 	// #s1#s2#s3#s3#s4#s5#s6#
@@ -247,52 +258,15 @@ void Superstring_callback::build_final_superstring(std::ostream& out){
 	
 	concatenation.resize(concatenation_index);
 	
-    assert(n_strings_read != 0);
+	assert(n_strings_read != 0);
 	
-	// DEBUG
-	for(int i = 0; i < merges_done; i++){
-		detail::merge merge;
-		merges.get(i, merge);
-		std::cout << merge.left << " " << merge.right << " " << merge.length << std::endl;
+	std::size_t current_string_idx = n_strings;
+    
+	// Concatenate all paths in the graph defined by the string_successor array
+	for(std::size_t i = 0; i < n_strings; i++){
+		if(rightavailable[i]){ // successor to none of the strings i.e. start of a path
+			do_path(i, out, concatenation, string_start_points);
+		}
 	}
-	// END DEBUG
-    
-	std::sort(merges.begin(), merges.begin() + merges_done);
-	
-	// DEBUG
-	std::cout << "--" << std::endl;
-	for(int i = 0; i < merges_done; i++){
-		detail::merge merge;
-		merges.get(i, merge);
-		std::cout << merge.left << " " << merge.right << " " << merge.length << std::endl;
-	}
-	// END DEBUG
-	
-    std::size_t current_string_idx = n_strings;
-    
-    // Initilize current_string_idx to the first string in the final superstring
-    for(std::size_t i = 0; i < n_strings; i++){
-		assert(i < rightavailable.size());
-        if(rightavailable[i]){
-            current_string_idx = i;
-            break;
-        }
-    }
-    assert(current_string_idx != n_strings);
-        
-    // Concatenate all strings putting in the overlapping region of adjacent strings only once
-    // Write out the first string as a whole
-	write_string((int64_t)string_start_points[0], (int64_t)0, out, concatenation);
-    
-    for(std::size_t i = 1; i < n_strings - 1; i++){
-		detail::merge merge;
-		merges.get(current_string_idx, merge);
-		
-		// Write the left string skipping the first merge.length characters
-		std::cout << "cur left right: " << current_string_idx << " " << merge.left << " " << merge.right << std::endl;
-		write_string(string_start_points[merge.left], merge.length, out, concatenation);
-		current_string_idx = merge.right;
-    }
-    
 }
 

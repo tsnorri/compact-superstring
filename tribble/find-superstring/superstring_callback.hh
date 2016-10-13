@@ -36,12 +36,14 @@ public:
 	
 	// Returns true if merge was successful, or if no more merges can be done
 	bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) override;
+	
 	void set_substring_count(std::size_t count) override;
 	void set_alphabet(alphabet_type const &alphabet) override;
 	void set_strings_stream(std::istream &strings_stream) override;
 	
-	// Prints the final superstring to the given output stream
-	void build_final_superstring(std::ostream& out); // Call after all prefix-suffix overlaps have been considered
+	// Prints the final superstring 'out'. Call only after all prefix-suffix overlaps have been considered
+	// and set_alphabet, set_substring_count and set_strings_stream has been called
+	void build_final_superstring(std::ostream& out);
 
 private:
 	
@@ -52,27 +54,33 @@ private:
 	// Sets rightavailable[index] = 0, and updates the union-find structure
 	void make_not_right_available(std::size_t index);
 	
-	// Merges two strings if the merge would not create a cycle
+	// Sets 'right_string' as the successor of 'left_string' if this does not create a cycle
 	bool try_merge(std::size_t left_string, std::size_t right_string, std::size_t overlap_length);
 	
 	// Writes the string starting at index 'string_start' in the concatenation of strings 
 	// with #-separators to 'out', skipping the first 'skip' characters
 	void write_string(int64_t string_start, int64_t skip, std::ostream& out, sdsl::int_vector<0>& concatenation);
-
-	UnionFind UF;
 	
-	std::size_t merges_done;
+	// Writes to 'out' the chained merge of all reads on the path starting from 'start_string'
+	void do_path(int64_t start_string, std::ostream& out, sdsl::int_vector<0>& concatenation, sdsl::int_vector<0>& string_start_points);
 	
-	int64_t n_strings;
-	sdsl::int_vector <> leftend;
-	sdsl::int_vector <> rightend;
-	sdsl::int_vector <> next;
-	sdsl::bit_vector rightavailable;
+	UnionFind UF; // For finding the next one-bit in rightavailable quickly. See paper.
 	
-	detail::merge_array merges;
+	std::size_t merges_done; // Number of merges done by try_merge
+	int64_t n_strings; // Total number of input strings
+	
+	sdsl::int_vector <> leftend; // See paper
+	sdsl::int_vector <> rightend; // See paper
+	sdsl::int_vector <> next; // See paper
+	sdsl::bit_vector rightavailable; // See paper
+	
+	sdsl::int_vector <> string_successor; // read_successor[i] = the next read from i in the hamiltonian path of the read graph
+	// if read_successor[i] = n_string, it means the read has no successor
+	
+	sdsl::int_vector <> overlap_lengths; // overlap_lengths[i] = the length of the overlap of read i to the successor of read i
 	
 	alphabet_type alphabet;
-	std::istream* strings_stream;
+	std::istream* strings_stream; // Raw pointer bad I know, I know
 };
 }
 
