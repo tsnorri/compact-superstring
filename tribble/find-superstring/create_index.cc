@@ -30,18 +30,20 @@ namespace ios = boost::iostreams;
 class create_index_cb
 {
 protected:
-	char const *m_source_fname{};
-	std::ostream *m_output_stream{};
+	std::ostream &m_index_stream;
+	std::ostream &m_strings_stream;
+	char const *m_strings_fname{};
 	std::vector <std::vector <char>> m_sequences;
 	char m_sentinel{};
 
 public:
-	create_index_cb(char const *source_fname, std::ostream &output_stream, char sentinel = '#'):
-		m_source_fname(source_fname),
-		m_output_stream(&output_stream),
+	create_index_cb(std::ostream &index_stream, std::ostream &strings_stream, char const *strings_fname, char sentinel = '#'):
+		m_index_stream(index_stream),
+		m_strings_stream(strings_stream),
+		m_strings_fname(strings_fname),
 		m_sentinel(sentinel)
 	{
-		assert(m_source_fname);
+		assert(m_strings_fname);
 	}
 
 	void handle_sequence(
@@ -62,13 +64,13 @@ public:
 		std::cerr << "Sorting the sequences…" << std::endl;
 		std::sort(m_sequences.begin(), m_sequences.end());
 		
-		std::cerr << "Writing to a temporary file…" << std::endl;
+		std::cerr << "Writing to the strings file…" << std::endl;
 		if (m_sequences.size())
 		{
 			// Output the first sequence.
 			decltype(m_sequences)::value_type const &previous_seq(m_sequences[0]);
-			*m_output_stream << m_sentinel;
-			std::copy(previous_seq.cbegin(), previous_seq.cend(), std::ostream_iterator <char>(*m_output_stream));
+			m_strings_stream << m_sentinel;
+			std::copy(previous_seq.cbegin(), previous_seq.cend(), std::ostream_iterator <char>(m_strings_stream));
 
 			// Output the remaining unique sequences.
 			// Swapping performance for readability.
@@ -77,51 +79,48 @@ public:
 				if (seq != previous_seq)
 				{
 					// Write the sequence to the specified file.
-					*m_output_stream << m_sentinel;
-					std::copy(seq.cbegin(), seq.cend(), std::ostream_iterator <char>(*m_output_stream));
+					m_strings_stream << m_sentinel;
+					std::copy(seq.cbegin(), seq.cend(), std::ostream_iterator <char>(m_strings_stream));
 				}
 			}
 		}
 		
 		// Output the final sentinel.
-		*m_output_stream << m_sentinel;
-		m_output_stream->flush();
+		m_strings_stream << m_sentinel;
+		m_strings_stream.flush();
 
 		// Read the sequence from the file.
 		std::cerr << "Creating the CST…" << std::endl;
 		cst_type cst;
-		sdsl::construct(cst, m_source_fname, 1);
+		sdsl::construct(cst, m_strings_fname, 1);
 
 		// Serialize.
 		std::cerr << "Serializing…" << std::endl;
-		sdsl::serialize(cst, std::cout);
+		sdsl::serialize(cst, m_index_stream);
 	}
 };
 
 
-void create_index(std::istream &source_stream, char const sentinel)
+void create_index(
+	std::istream &source_stream,
+	std::ostream &index_stream,
+	std::ostream &strings_stream,
+	char const *strings_fname,
+	char const sentinel
+)
 {
-	// SDSL reads the whole string from a file so copy the contents without the newlines
-	// into a temporary file, then create the index.
-	char temp_fname[]{"/tmp/tribble_find_superstring_XXXXXX"};
-	int const temp_fd(mkstemp(temp_fname));
-	if (-1 == temp_fd)
-		handle_error();
-
 	try
 	{
 		// Read the sequence from input and create the index in the callback.
 		tribble::vector_source vs(1, false);
 		tribble::fasta_reader <create_index_cb, 10 * 1024 * 1024> reader;
-		ios::stream <ios::file_descriptor_sink> output_stream(temp_fd, ios::close_handle);
-		create_index_cb cb(temp_fname, output_stream, sentinel);
+		create_index_cb cb(index_stream, strings_stream, strings_fname, sentinel);
 
 		std::cerr << "Reading the sequences…" << std::endl;
 		reader.read_from_stream(source_stream, vs, cb);
 	}
 	catch (...)
 	{
-		if (-1 == unlink(temp_fname))
-			handle_error();
+		handle_error();
 	}
 }

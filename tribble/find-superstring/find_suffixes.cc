@@ -28,15 +28,6 @@ namespace ios = boost::iostreams;
 typedef ios::stream <ios::file_descriptor_source> source_stream_type;
 
 
-int open_file(char const *fname)
-{
-	int fd(open(fname, O_RDONLY));
-	if (-1 == fd)
-		handle_error();
-	return fd;
-}
-
-
 void find_suffixes_with_sorted(
 	cst_type const &cst,
 	char const sentinel,
@@ -148,7 +139,12 @@ void find_suffixes_with_sorted(
 }
 
 
-void find_suffixes(char const *source_fname, char const sentinel, find_superstring_match_callback &cb)
+void find_suffixes(
+	std::istream &index_stream,
+	std::istream &strings_stream,
+	char const sentinel,
+	find_superstring_match_callback &cb
+)
 {
 	cst_type cst;
 
@@ -158,16 +154,7 @@ void find_suffixes(char const *source_fname, char const sentinel, find_superstri
 		auto const event(sdsl::memory_monitor::event("Load CST"));
 		tribble::timer timer;
 		
-		if (source_fname)
-		{
-			int fd(open_file(source_fname));
-			source_stream_type ds_stream(fd, ios::close_handle);
-			cst.load(ds_stream);
-		}
-		else
-		{
-			cst.load(std::cin);
-		}
+		cst.load(index_stream);
 		
 		timer.stop();
 		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
@@ -186,6 +173,7 @@ void find_suffixes(char const *source_fname, char const sentinel, find_superstri
 		
 		sort_strings_by_length(cst.csa, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
 		cb.set_substring_count(sorted_substrings.size());
+		cb.set_strings_stream(strings_stream);
 		
 		timer.stop();
 		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;

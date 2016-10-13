@@ -28,6 +28,10 @@
 namespace ios = boost::iostreams;
 
 
+typedef ios::stream <ios::file_descriptor_source> file_istream;
+typedef ios::stream <ios::file_descriptor_sink> file_ostream;
+
+
 // Timing with wallclock.
 static tribble::timer s_timer;
 
@@ -40,6 +44,14 @@ void handle_error()
 }
 
 
+void handle_file_error(char const *fname)
+{
+	char const *errmsg(strerror(errno));
+	std::cerr << "Got an error while trying to open '" << fname << "': " << errmsg << std::endl;
+	exit(EXIT_FAILURE);
+}
+
+
 // Report the elapsed time at exit.
 void handle_atexit()
 {
@@ -48,21 +60,25 @@ void handle_atexit()
 }
 
 
-// If the source file was given, open it. Otherwise read from stdin.
-void open_source_file_and_execute(gengetopt_args_info const &args_info, std::function <void(std::istream &)> cb)
+void open_file_for_reading(char const *fname, file_istream &stream)
 {
-	if (args_info.source_file_given)
-	{
-		int fd(open(args_info.source_file_arg, O_RDONLY));
-		if (-1 == fd)
-			handle_error();
-		ios::stream <ios::file_descriptor_source> source_stream(fd, ios::close_handle);
-		cb(source_stream);
-	}
-	else
-	{
-		cb(std::cin);
-	}
+	int fd(open(fname, O_RDONLY));
+	if (-1 == fd)
+		handle_file_error(fname);
+	
+	ios::file_descriptor_source source(fd, ios::close_handle);
+	stream.open(source);
+}
+
+
+void open_file_for_writing(char const *fname, file_ostream &stream)
+{
+	int fd(open(fname, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR));
+	if (-1 == fd)
+		handle_file_error(fname);
+	
+	ios::file_descriptor_sink sink(fd, ios::close_handle);
+	stream.open(sink);
 }
 
 
@@ -74,34 +90,54 @@ int main(int argc, char **argv)
 	if (0 != cmdline_parser(argc, argv, &args_info))
 		exit(EXIT_FAILURE);
 	
+	// Check the remaining options.
+	if (args_info.create_index_given || args_info.find_superstring_given)
+	{
+		if (!args_info.sorted_strings_file_given)
+		{
+			std::cerr << "The sorted strings file needs to be specified." << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	
 	// See if memory monitor should be used.
 	bool const log_memory_usage(args_info.output_memory_usage_given);
-	ios::stream <ios::file_descriptor_sink> mem_usage_stream;
+	file_ostream mem_usage_stream;
 	if (log_memory_usage)
 	{
-		int fd(open(args_info.output_memory_usage_arg, O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR));
-		if (-1 == fd)
-			handle_error();
-		
-		ios::file_descriptor_sink sink(fd, ios::close_handle);
-		mem_usage_stream.open(sink);
-
+		open_file_for_writing(args_info.output_memory_usage_arg, mem_usage_stream);
 		sdsl::memory_monitor::start();
 	}
 
 	// Check the mode and execute.
 	if (args_info.create_index_given)
 	{
-		open_source_file_and_execute(args_info, [](std::istream &istream){ create_index(istream, '#'); });
-	}
-	else if (args_info.index_visualization_given)
-	{
-		open_source_file_and_execute(args_info, [](std::istream &istream){ visualize(istream); });
+		file_istream fasta_stream;
+		file_ostream index_stream;
+		file_ostream strings_stream;
+		
+		open_file_for_reading(args_info.source_file_arg, fasta_stream);
+		open_file_for_writing(args_info.index_file_arg, index_stream);
+		open_file_for_writing(args_info.sorted_strings_file_arg, strings_stream);
+		
+		create_index(fasta_stream, index_stream, strings_stream, args_info.sorted_strings_file_arg, '#');
 	}
 	else if (args_info.find_superstring_given)
 	{
+		file_istream index_stream;
+		file_istream strings_stream;
+		
+		open_file_for_reading(args_info.index_file_arg, index_stream);
+		open_file_for_reading(args_info.sorted_strings_file_arg, strings_stream);
+		
 		tribble::Superstring_callback cb;
-		find_suffixes(args_info.source_file_given ? args_info.source_file_arg : nullptr, '#', cb);
+		find_suffixes(index_stream, strings_stream, '#', cb);
+	}
+	else if (args_info.index_visualization_given)
+	{
+		file_istream index_stream;
+		open_file_for_reading(args_info.index_file_arg, index_stream);
+		visualize(index_stream);
 	}
 	else
 	{

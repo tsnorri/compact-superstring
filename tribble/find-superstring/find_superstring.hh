@@ -43,10 +43,17 @@ struct find_superstring_match_callback
 {
 	virtual ~find_superstring_match_callback() {}
 	virtual void set_substring_count(std::size_t set_substring_count) = 0;
+	virtual void set_strings_stream(std::istream &strings_stream) = 0;
 	virtual bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) = 0;
 };
 
-extern "C" void create_index(std::istream &source_stream, char const sentinel);
+extern "C" void create_index(
+	std::istream &source_stream,
+	std::ostream &index_stream,
+	std::ostream &strings_stream,
+	char const *strings_fname,
+	char const sentinel
+);
 extern "C" void sort_strings_by_length(
 	csa_type const &csa,
 	char const sentinel,
@@ -54,8 +61,13 @@ extern "C" void sort_strings_by_length(
 	/* out */ sdsl::int_vector <> &sorted_bwt_start_indices,
 	/* out */ sdsl::int_vector <> &string_lengths
 );
-extern "C" void find_suffixes(char const *source_fname, char const sentinel, find_superstring_match_callback &cb);
-extern "C" void visualize(std::istream &stream);
+extern "C" void find_suffixes(
+	std::istream &index_stream,
+	std::istream &strings_stream,
+	char const sentinel,
+	find_superstring_match_callback &cb
+);
+extern "C" void visualize(std::istream &index_stream);
 extern "C" void handle_error();
 
 #endif
