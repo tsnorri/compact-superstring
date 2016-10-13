@@ -173,6 +173,7 @@ void find_suffixes(
 		
 		sort_strings_by_length(cst.csa, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
 		cb.set_substring_count(sorted_substrings.size());
+		cb.set_alphabet(cst.csa.alphabet);
 		cb.set_strings_stream(strings_stream);
 		
 		timer.stop();

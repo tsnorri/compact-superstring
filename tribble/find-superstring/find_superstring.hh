@@ -37,12 +37,14 @@ typedef sdsl::csa_wt <wt_type, 1 << 20, 1 << 20>	csa_type;
 typedef sdsl::lcp_support_tree2 <256>				lcp_support_type;
 typedef sdsl::cst_sct3 <csa_type, lcp_support_type>	cst_type;
 typedef csa_type::size_type							size_type;
+typedef csa_type::alphabet_type						alphabet_type;
 
 
 struct find_superstring_match_callback
 {
 	virtual ~find_superstring_match_callback() {}
 	virtual void set_substring_count(std::size_t set_substring_count) = 0;
+	virtual void set_alphabet(alphabet_type const &alphabet) = 0;
 	virtual void set_strings_stream(std::istream &strings_stream) = 0;
 	virtual bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) = 0;
 };

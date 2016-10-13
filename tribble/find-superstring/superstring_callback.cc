@@ -84,6 +84,10 @@ void Superstring_callback::set_substring_count(std::size_t count){
 void Superstring_callback::set_strings_stream(std::istream &stream){
 }
 
+void Superstring_callback::set_alphabet(alphabet_type const &alphabet){
+}
+
+
 bool Superstring_callback::callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end){
     assert(n_strings != -1);
     if(merges_done >= n_strings - 1) return true; // No more merges can be done
