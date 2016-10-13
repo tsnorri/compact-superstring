@@ -29,11 +29,14 @@ namespace ios = boost::iostreams;
 
 class create_index_cb
 {
+public:
+	typedef tribble::vector_source::vector_type vector_type;
+	
 protected:
 	std::ostream &m_index_stream;
 	std::ostream &m_strings_stream;
 	char const *m_strings_fname{};
-	std::vector <std::vector <char>> m_sequences;
+	std::vector <vector_type> m_sequences;
 	char m_sentinel{};
 
 public:
@@ -48,12 +51,15 @@ public:
 
 	void handle_sequence(
 		std::string const &identifier,
-		std::unique_ptr <std::vector <char>> &seq,
+		std::unique_ptr <vector_type> &seq,
+		std::size_t const seq_length,
 		tribble::vector_source &vs
 	)
 	{
 		// Copy the sequence to the collection.
-		std::vector <char> seq_copy(*seq.get());
+		vector_type seq_copy;
+		seq_copy.resize(seq_length);
+		std::copy_n(seq->begin(), seq_length, seq_copy.begin());
 		m_sequences.emplace_back(seq_copy);
 		vs.put_vector(seq);
 	}
@@ -70,7 +76,7 @@ public:
 			// Output the first sequence.
 			decltype(m_sequences)::value_type const &previous_seq(m_sequences[0]);
 			m_strings_stream << m_sentinel;
-			std::copy(previous_seq.cbegin(), previous_seq.cend(), std::ostream_iterator <char>(m_strings_stream));
+			std::copy(previous_seq.begin(), previous_seq.end(), std::ostream_iterator <char>(m_strings_stream));
 
 			// Output the remaining unique sequences.
 			// Swapping performance for readability.
@@ -80,7 +86,7 @@ public:
 				{
 					// Write the sequence to the specified file.
 					m_strings_stream << m_sentinel;
-					std::copy(seq.cbegin(), seq.cend(), std::ostream_iterator <char>(m_strings_stream));
+					std::copy(seq.begin(), seq.end(), std::ostream_iterator <char>(m_strings_stream));
 				}
 			}
 		}
@@ -118,6 +124,10 @@ void create_index(
 
 		std::cerr << "Reading the sequences…" << std::endl;
 		reader.read_from_stream(source_stream, vs, cb);
+	}
+	catch (std::exception const &exc)
+	{
+		handle_exception(exc);
 	}
 	catch (...)
 	{

@@ -21,7 +21,7 @@
 #include <iostream>
 #include <memory>
 #include <mutex>
-#include <vector>
+#include <sdsl/int_vector.hpp>
 
 
 namespace tribble {
@@ -29,7 +29,7 @@ namespace tribble {
 	class vector_source
 	{
 	public:
-		typedef std::vector <char>	vector_type;
+		typedef sdsl::int_vector <8>	vector_type;
 		
 	protected:
 		std::vector <std::unique_ptr <vector_type>>	m_store;

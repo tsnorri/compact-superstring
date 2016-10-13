@@ -71,5 +71,6 @@ extern "C" void find_suffixes(
 );
 extern "C" void visualize(std::istream &index_stream);
 extern "C" void handle_error();
+extern "C" void handle_exception(std::exception const &exc);
 
 #endif

@@ -43,6 +43,11 @@ void handle_error()
 	exit(EXIT_FAILURE);
 }
 
+void handle_exception(std::exception const &exc)
+{
+	std::cerr << "Got an exception: " << exc.what() << std::endl;
+	exit(EXIT_FAILURE);
+}
 
 void handle_file_error(char const *fname)
 {
