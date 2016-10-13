@@ -40,7 +40,8 @@ public:
 	void set_alphabet(alphabet_type const &alphabet) override;
 	void set_strings_stream(std::istream &strings_stream) override;
 	
-	std::string build_final_superstring(std::vector<std::string> strings); // Call after all prefix-suffix overlaps have been considered
+	// Prints the final superstring to the given output stream
+	void build_final_superstring(std::ostream& out); // Call after all prefix-suffix overlaps have been considered
 
 private:
 	
@@ -54,7 +55,10 @@ private:
 	// Merges two strings if the merge would not create a cycle
 	bool try_merge(std::size_t left_string, std::size_t right_string, std::size_t overlap_length);
 	
-	// todo: use sdsl containers
+	// Writes the string starting at index 'string_start' in the concatenation of strings 
+	// with #-separators to 'out', skipping the first 'skip' characters
+	void write_string(int64_t string_start, int64_t skip, std::ostream& out, sdsl::int_vector<0>& concatenation);
+
 	UnionFind UF;
 	
 	std::size_t merges_done;
@@ -66,6 +70,9 @@ private:
 	sdsl::bit_vector rightavailable;
 	
 	detail::merge_array merges;
+	
+	alphabet_type alphabet;
+	std::istream* strings_stream;
 };
 }
 
