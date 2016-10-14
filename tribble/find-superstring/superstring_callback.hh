@@ -23,7 +23,6 @@
 #include <string>
 #include <tuple>
 #include "find_superstring.hh"
-#include "merge.hh"
 #include "union_find.hh"
 
 
