@@ -14,7 +14,7 @@
  along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-
+#include <algorithm>
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <fcntl.h>
@@ -132,7 +132,7 @@ public:
 		{
 			tribble::timer timer;
 
-			std::size_t max_length(0);
+			decltype(string_lengths)::size_type max_length(0);
 			for (auto const &seq : m_sequences)
 				max_length = std::max(max_length, seq.size());
 			
