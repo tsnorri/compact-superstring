@@ -6,12 +6,12 @@ TARGET			=	find-superstring
 LDFLAGS			+=	$(BOOST_IOSTREAMS_LIB)
 # CPPFLAGS		+=	-DDEBUGGING_OUTPUT
 
-OBJECTS			=	cmdline.o \
+OBJECTS			=	check_non_unique_strings.o \
+					cmdline.o \
 					create_index.o \
 					find_suffixes.o \
 					find_superstring.o \
 					main.o \
-					sort_strings.o \
 					superstring_callback.o \
 					vector_source.o \
 					visualize.o \
