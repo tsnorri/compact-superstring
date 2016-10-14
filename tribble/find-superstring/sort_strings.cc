@@ -288,10 +288,24 @@ namespace tribble { namespace detail {
 			
 			// Check the next character.
 			auto const next_character(range.next_substring_leftmost_character(*m_csa));
+			
+			// The substring range should not become singular before the suffix “$#”
+			// has been handled. Hence it doesn't need to be handled here.
+			assert(0 != next_character);
+			// FIXME: does to above statement hold? if not, the relevant code is below.
+#if 0
 			if (0 == next_character)
 			{
 				m_index_list.advance_and_mark_skipped();
 				return;
+			}
+#endif
+			
+			// Check if the current substring range represents non-unique strings.
+			if (next_character == m_sentinel)
+			{
+				assert(!range.is_match_range_singular());
+				// FIXME: handle the non-unique string.
 			}
 			
 			// Look for the next character in the range that didn't begin with '#'.
@@ -346,7 +360,7 @@ namespace tribble { namespace detail {
 				std::sort(m_is_buffer.cs.begin(), symbol_count + m_is_buffer.cs.begin());
 			
 			// Handle the '$' character.
-			if (0 == m_is_buffer.cs[0])
+			if (0 == m_is_buffer.cs[si])
 			{
 				++si;
 				--count_diff;
@@ -362,6 +376,14 @@ namespace tribble { namespace detail {
 				assert(si < symbol_count);
 				auto const next_character(m_is_buffer.cs[si++]);
 				assert(next_character);
+				
+				// Check if the current substring range represents non-unique strings.
+				if (next_character == m_sentinel)
+				{
+					assert(!new_range.is_match_range_singular());
+					// FIXME: handle the non-unique string.
+				}
+				
 				auto const substring_count(new_range.backward_search_substring(*m_csa, next_character));
 				auto const match_count(new_range.backward_search_match(*m_csa, next_character));
 				assert(match_count);
@@ -413,17 +435,6 @@ namespace tribble { namespace detail {
 		inline void sort_strings_by_length()
 		{
 			auto const csa_size(m_csa->size());
-			
-			if (DEBUGGING_OUTPUT)
-			{
-				std::cerr << " i SA ISA PSI LF BWT   T[SA[i]..SA[i]-1]" << std::endl;
-				sdsl::csXprintf(std::cerr, "%2I %2S %3s %3P %2p %3B   %:1T", *m_csa);
-				std::cerr << "First row: '";
-				for (std::size_t i(0), count(m_csa->size()); i < count; ++i)
-					std::cerr << m_csa->F[i];
-				std::cerr << "'" << std::endl;
-				std::cerr << "Text: '" << sdsl::extract(*m_csa, 0, csa_size - 1) << "'" << std::endl;
-			}
 			
 			while (m_index_list.reset())
 			{

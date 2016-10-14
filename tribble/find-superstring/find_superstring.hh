@@ -40,6 +40,41 @@ typedef csa_type::size_type							size_type;
 typedef csa_type::alphabet_type						alphabet_type;
 
 
+struct index_type
+{
+	typedef std::size_t size_type;
+	
+	cst_type cst;
+	sdsl::int_vector <> string_lengths;
+	
+	index_type() = default;
+	
+	index_type(cst_type &cst_p, sdsl::int_vector <> string_lengths_p):
+		cst(std::move(cst_p)),
+		string_lengths(std::move(string_lengths_p))
+	{
+	}
+	
+	size_type serialize(std::ostream &out, sdsl::structure_tree_node *v, std::string name) const
+	{
+		sdsl::structure_tree_node *child(sdsl::structure_tree::add_child(v, name, "tribble::index_type"));
+		size_type written_bytes(0);
+										 
+		written_bytes += cst.serialize(out, child, "cst");
+		written_bytes += string_lengths.serialize(out, child, "string_lengths");
+
+		sdsl::structure_tree::add_size(child, written_bytes);
+		return written_bytes;
+	}
+	
+	void load(std::istream &in)
+	{
+		cst.load(in);
+		string_lengths.load(in);
+	}
+};
+
+
 struct find_superstring_match_callback
 {
 	virtual ~find_superstring_match_callback() {}
@@ -48,6 +83,7 @@ struct find_superstring_match_callback
 	virtual void set_strings_stream(std::istream &strings_stream) = 0;
 	virtual bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) = 0;
 };
+
 
 extern "C" void create_index(
 	std::istream &source_stream,

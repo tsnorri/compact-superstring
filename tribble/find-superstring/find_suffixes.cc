@@ -146,21 +146,34 @@ void find_suffixes(
 	find_superstring_match_callback &cb
 )
 {
-	cst_type cst;
+	index_type index;
 
-	// Load the CST.
-	std::cerr << "Loading the CST…" << std::flush;
+	// Load the index.
+	std::cerr << "Loading the index…" << std::flush;
 	{
-		auto const event(sdsl::memory_monitor::event("Load CST"));
+		auto const event(sdsl::memory_monitor::event("Load index"));
 		tribble::timer timer;
 		
-		cst.load(index_stream);
+		index.load(index_stream);
 		
 		timer.stop();
 		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
 	}
+	
+	if (DEBUGGING_OUTPUT)
+	{
+		auto const &csa(index.cst.csa);
+		auto const csa_size(csa.size());
+		std::cerr << " i SA ISA PSI LF BWT   T[SA[i]..SA[i]-1]" << std::endl;
+		sdsl::csXprintf(std::cerr, "%2I %2S %3s %3P %2p %3B   %:1T", csa);
+		std::cerr << "First row: '";
+		for (std::size_t i(0); i < csa_size; ++i)
+			std::cerr << csa.F[i];
+		std::cerr << "'" << std::endl;
+		std::cerr << "Text: '" << sdsl::extract(csa, 0, csa_size - 1) << "'" << std::endl;
+	}
+	
 
-	// Find the superstring.
 	// Sort the strings by length.
 	std::cerr << "Sorting the sequences by unique suffix length…" << std::flush;
 
@@ -171,9 +184,9 @@ void find_suffixes(
 		auto const event(sdsl::memory_monitor::event("Sort sequences"));
 		tribble::timer timer;
 		
-		sort_strings_by_length(cst.csa, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
+		sort_strings_by_length(index.cst.csa, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
 		cb.set_substring_count(sorted_substrings.size());
-		cb.set_alphabet(cst.csa.alphabet);
+		cb.set_alphabet(index.cst.csa.alphabet);
 		cb.set_strings_stream(strings_stream);
 		
 		timer.stop();
@@ -186,7 +199,7 @@ void find_suffixes(
 		tribble::timer timer;
 		
 		find_suffixes_with_sorted(
-			cst,
+			index.cst,
 			sentinel,
 			sorted_substrings,
 			sorted_substring_start_indices,
