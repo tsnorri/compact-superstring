@@ -20,6 +20,7 @@
 #include "find_superstring.hh"
 #include "linked_list.hh"
 #include "node_array.hh"
+#include "string_array.hh"
 #include "timer.hh"
 
 namespace ios = boost::iostreams;
@@ -31,32 +32,34 @@ typedef ios::stream <ios::file_descriptor_source> source_stream_type;
 void find_suffixes_with_sorted(
 	cst_type const &cst,
 	char const sentinel,
-	sdsl::int_vector <> const &sorted_substrings,
-	sdsl::int_vector <> const &sorted_substring_start_indices,
-	sdsl::int_vector <> const &string_lengths,
+	tribble::string_array const &strings,
 	find_superstring_match_callback &match_callback
 )
 {
-	assert(sorted_substrings.size() == sorted_substring_start_indices.size());
-	assert(sorted_substrings.size() == string_lengths.size());
-	
 	auto const root(cst.root());
-	auto const string_count(sorted_substrings.size());
-	auto const max_length(string_lengths[string_count - 1]);
+	auto const string_count(strings.size());
+	auto const max_length(strings.max_string_length());
 	
 	// Use O(m log n) bits for the nodes.
 	tribble::node_array <cst_type::size_type> sorted_nodes(string_count, cst.size());
 	
 	{
 		std::size_t i(0);
-		for (auto const idx : sorted_substrings)
+		for (auto const str : strings)
 		{
-			auto const node(cst.select_leaf(1 + idx));
+			auto const match_start_sa_idx(str.match_start_sa_idx);
+			// Simplify the algorithm by backtracking one letter.
+			auto const next_sa_idx(cst.csa.lf[match_start_sa_idx]);
+			auto const node(cst.select_leaf(1 + next_sa_idx));
 			
 			if (DEBUGGING_OUTPUT)
 			{
-				std::cerr << "Start: " << sdsl::extract(cst, cst.select_leaf(1 + sorted_substring_start_indices[i])) << std::endl;
-				std::cerr << "Node:  " << sdsl::extract(cst, node) << std::endl;
+				auto const sa_idx(str.sa_idx);
+				std::cerr << std::endl;
+				std::cerr << "Is unique: " << str.is_unique << " matching suffix length: " << str.branching_suffix_length << std::endl;
+				std::cerr << "Start ("<< sa_idx << "): " << sdsl::extract(cst, cst.select_leaf(1 + sa_idx)) << std::endl;
+				std::cerr << "Node: (" << match_start_sa_idx << "): " << sdsl::extract(cst, node) << std::endl;
+				std::cerr << "----------" << std::endl;
 			}
 			
 			sorted_nodes.set(i, node);
@@ -88,22 +91,56 @@ void find_suffixes_with_sorted(
 
 			auto const i(string_count - index_list.get_i());
 			assert(i);
-			if (string_lengths[i - 1] < remaining_suffix_length)
+			
+			// Get the next longest string.
+			tribble::string_type string;
+			strings.get(i - 1, string);
+			
+			// If the string is not unique, it need not be handled.
+			if (!string.is_unique)
+			{
+				index_list.advance_and_mark_skipped();
+				continue;
+			}
+			
+			// If the remaining strings are shorter than the remaining suffix
+			// length, they will not match anything.
+			if (string.length < remaining_suffix_length)
 				break;
 			
-			auto const substring_length(string_lengths[i - 1]);
+			// If the branching suffix is shorter than the number of characters available,
+			// the string may be skipped.
+			if (string.branching_suffix_length < remaining_suffix_length)
+			{
+				index_list.advance();
+				continue;
+			}
+			
 			auto node(sorted_nodes.get(i - 1));
 			node = cst.sl(node);							// O(rrenclose) time.
 			auto parent(cst.parent(node));					// O(1) time in cst_sct3.
 			auto parent_string_depth(cst.depth(parent));	// O(1) time in cst_sct3 since non-leaf.
 			
+			if (false && DEBUGGING_OUTPUT)
+			{
+				std::cerr << "Node:   '" << sdsl::extract(cst, node) << "'" << std::endl;
+				std::cerr << "Parent: '" << sdsl::extract(cst, parent) << "'" << std::endl;
+			}
+
 			// Ascend if possible.
-			// FIXME: time complexity? Do we get the worst case of implicit suffix links?
+			// FIXME: time complexity? Do we get the worst case of implicit suffix links
+			// since the BWT index is allowed to contain substrings (but not duplicates)?
 			while (remaining_suffix_length < parent_string_depth)
 			{
 				node = parent;
 				parent = cst.parent(node);
 				parent_string_depth = cst.depth(parent);
+			}
+
+			if (false && DEBUGGING_OUTPUT)
+			{
+				std::cerr << "Node:   '" << sdsl::extract(cst, node) << "'" << std::endl;
+				std::cerr << "----------" << std::endl;
 			}
 
 			if (remaining_suffix_length == parent_string_depth)
@@ -116,7 +153,7 @@ void find_suffixes_with_sorted(
 					
 					// A match was found. Handle it.
 					bool const should_remove(match_callback.callback(
-						sorted_substring_start_indices[i - 1],
+						string.sa_idx,
 						remaining_suffix_length,
 						cst.lb(match_node),
 						cst.rb(match_node)
@@ -174,24 +211,53 @@ void find_suffixes(
 	}
 	
 
-	// Sort the strings by length.
-	std::cerr << "Sorting the sequences by unique suffix length…" << std::flush;
-
-	sdsl::int_vector <> sorted_substrings;
-	sdsl::int_vector <> sorted_substring_start_indices;
-	sdsl::int_vector <> substring_lengths;
+	// Check uniqueness.
+	std::cerr << "Checking non-unique strings…" << std::flush;
+	tribble::string_array strings_available;
+	sdsl::bit_vector is_unique_sa_order;
 	{
-		auto const event(sdsl::memory_monitor::event("Sort sequences"));
+		auto const event(sdsl::memory_monitor::event("Check non-unique strings"));
 		tribble::timer timer;
 		
-		sort_strings_by_length(index.cst.csa, sentinel, sorted_substrings, sorted_substring_start_indices, substring_lengths);
-		cb.set_substring_count(sorted_substrings.size());
-		cb.set_alphabet(index.cst.csa.alphabet);
-		cb.set_strings_stream(strings_stream);
+		check_non_unique_strings(index.cst.csa, index.string_lengths, sentinel, strings_available);
+		assert(std::is_sorted(
+			strings_available.cbegin(),
+			strings_available.cend(),
+			[](tribble::string_type const &lhs, tribble::string_type const &rhs) {
+				return lhs.sa_idx < rhs.sa_idx;
+			}
+		));
+		is_unique_sa_order = strings_available.is_unique_vector(); // Copy.
+		timer.stop();
+		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
+		
+		if (DEBUGGING_OUTPUT)
+		{
+			for (size_type i(0), count(strings_available.size()); i < count; ++i)
+			{
+				tribble::string_type str;
+				strings_available.get(i, str);
+				std::cerr << str << std::endl;
+			}
+		}
+	}
+	
+	// Sort.
+	std::cerr << "Sorting by string length…" << std::flush;
+	{
+		auto const event(sdsl::memory_monitor::event("Sort strings"));
+		tribble::timer timer;
+		
+		std::sort(strings_available.begin(), strings_available.end());
 		
 		timer.stop();
 		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
 	}
+	
+	cb.set_substring_count(strings_available.size());
+	cb.set_is_unique_vector(is_unique_sa_order);
+	cb.set_alphabet(index.cst.csa.alphabet);
+	cb.set_strings_stream(strings_stream);
 
 	std::cerr << "Matching prefixes and suffixes…" << std::flush;
 	{
@@ -201,9 +267,7 @@ void find_suffixes(
 		find_suffixes_with_sorted(
 			index.cst,
 			sentinel,
-			sorted_substrings,
-			sorted_substring_start_indices,
-			substring_lengths,
+			strings_available,
 			cb
 		);
 		

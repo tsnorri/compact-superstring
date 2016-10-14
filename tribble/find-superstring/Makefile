@@ -9,6 +9,7 @@ LDFLAGS			+=	$(BOOST_IOSTREAMS_LIB)
 OBJECTS			=	cmdline.o \
 					create_index.o \
 					find_suffixes.o \
+					find_superstring.o \
 					main.o \
 					sort_strings.o \
 					superstring_callback.o \

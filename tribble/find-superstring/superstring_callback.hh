@@ -39,6 +39,7 @@ public:
 	void set_substring_count(std::size_t count) override;
 	void set_alphabet(alphabet_type const &alphabet) override;
 	void set_strings_stream(std::istream &strings_stream) override;
+	void set_is_unique_vector(sdsl::bit_vector const &vec) override;
 	
 	std::string build_final_superstring(std::vector<std::string> strings); // Call after all prefix-suffix overlaps have been considered
 

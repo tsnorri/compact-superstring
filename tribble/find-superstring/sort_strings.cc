@@ -196,62 +196,82 @@ namespace tribble { namespace detail {
 	};
 	
 	
-	class string_sorter
+	class branch_checker
 	{
 	protected:
+		string_array		m_strings;
 		csa_type const		*m_csa{nullptr};
 		bwt_range_array		m_ranges;
 		linked_list			m_index_list;
 		interval_symbols	m_is_buffer;
 		bwt_range			m_initial_range;
-		sdsl::int_vector <>	m_sorted_bwt_indices;
-		sdsl::int_vector <>	m_sorted_bwt_start_indices;
-		sdsl::int_vector <>	m_string_lengths;
 		size_type			m_length{0};
-		size_type			m_sorted_bwt_ptr{0};
 		char const			m_sentinel{0};
 		
 	public:
-		string_sorter(csa_type const &csa, char const sentinel):
+		branch_checker(csa_type const &csa, char const sentinel, sdsl::int_vector <> const &string_lengths):
 			m_csa(&csa),
 			m_is_buffer(csa.wavelet_tree.sigma),
 			m_sentinel(sentinel)
 		{
-			auto const csa_size(m_csa->size());
-			
-			// Store the lexicographic range of the sentinel character.
+			size_type csa_size(m_csa->size());
 			size_type left(0), right(csa_size - 1);
-			auto const string_count(sdsl::backward_search(*m_csa, left, right, sentinel, left, right));
-			
-			std::size_t const bits_for_m(1 + sdsl::bits::hi(1 + string_count));
-			std::size_t const bits_for_n(1 + sdsl::bits::hi(csa_size));
-			
+			auto string_count(sdsl::backward_search(*m_csa, left, right, m_sentinel, left, right));
+			if (2 <= string_count)
 			{
-				bwt_range_array ranges(string_count, bits_for_n);
-				bwt_range initial_range(left, right, 0, csa_size - 1);
-				ranges.set(0, initial_range);
-				m_initial_range = initial_range;
+				// Fill m_strings with index and length pairs.
 				
-				m_ranges = std::move(ranges);
-			}
+				assert(string_lengths.size() == string_count - 1);
 			
-			{
-				linked_list index_list(1 + string_count, bits_for_m);
-				m_index_list = std::move(index_list);
-			}
-			
-			{
-				sdsl::int_vector <> sorted_bwt_indices(string_count - 1, 0, bits_for_n);
-				sdsl::int_vector <> sorted_bwt_start_indices(string_count - 1, 0, bits_for_n);
-				sdsl::int_vector <> string_lengths(string_count - 1, 0, bits_for_n);
+				auto const bits_for_n(1 + sdsl::bits::hi(csa_size));
+				auto const bits_for_max_length(string_lengths.width());
+				auto const bits_for_m(1 + sdsl::bits::hi(string_count));
+				auto const bits_for_m_1(1 + sdsl::bits::hi(1 + string_count));
 				
-				m_sorted_bwt_indices		= std::move(sorted_bwt_indices);
-				m_sorted_bwt_start_indices	= std::move(sorted_bwt_start_indices);
-				m_string_lengths			= std::move(string_lengths);
+				{
+					tribble::string_array tmp(string_count - 1, bits_for_m, bits_for_n, bits_for_max_length);
+					m_strings = std::move(tmp);
+				}
+
+				{
+					size_type i(0);
+					for (auto const length : string_lengths)
+					{
+						// Remove “#$”.
+						auto const sa_idx(1 + left + i);
+						assert(sa_idx <= right);
+						string_type string(sa_idx, length);
+						m_strings.set(i, string);
+						++i;
+					}
+				}
+				
+				// Set the initial range for locating branch points and non-uniques.
+				{
+					// Include the range for “#$” for backward_search.
+					bwt_range initial_range(left, right, 0, csa_size - 1);
+					m_initial_range = std::move(initial_range);
+				}
+				
+				// Prepare other data structures.
+				{
+					bwt_range_array ranges(1 + string_count, bits_for_n);
+					ranges.set(0, m_initial_range);
+					m_ranges = std::move(ranges);
+				}
+				
+				{
+					linked_list index_list(1 + string_count, bits_for_m_1);
+					m_index_list = std::move(index_list);
+				}
 			}
 		}
 		
-	protected:
+		inline void get_strings_available(/* out */ string_array &dst)
+		{
+			dst = std::move(m_strings);
+		}
+		
 		inline void add_match(bwt_range range)
 		{
 			assert(range.has_equal_ranges());
@@ -263,20 +283,79 @@ namespace tribble { namespace detail {
 					<< "]" << std::endl;
 			}
 
-			auto const range_start(range.match_range_left);
-			m_sorted_bwt_indices[m_sorted_bwt_ptr] = range_start;
+			auto const range_match_start(range.match_range_left);
+			auto const range_branch_point(range.branch_point);
 			
 			// Find the end of the substring.
-			for (std::size_t i(0); i <= range.substring_branching_suffix_length; ++i)
+			for (std::size_t i(0); i < range.substring_branching_suffix_length; ++i)
 				range.branch_point_psi(*m_csa);
+
+			auto const range_substring_end(range.branch_point);
+			size_type range_substring_start(0);
 			
-			m_sorted_bwt_start_indices[m_sorted_bwt_ptr] = range.branch_point;
-			m_string_lengths[m_sorted_bwt_ptr] = m_length;
+			// Convert to start position.
+			assert(range_substring_end <= m_initial_range.substring_range_right);
+			if (m_initial_range.substring_range_left == range_substring_end)
+				range_substring_start = m_initial_range.substring_range_right;
+			else
+				range_substring_start = range_substring_end - 1;
 			
-			++m_sorted_bwt_ptr;
+			size_type i(range_substring_start - 2);
+			
+			// Store the values.
+			string_type string;
+			m_strings.get(i, string);
+			assert(string.sa_idx == range_substring_start);
+			string.is_unique = true;
+			string.match_start_sa_idx = range_match_start;
+			string.branching_suffix_length = 1 + m_length;
+			m_strings.set(i, string);
 		}
 		
-		// Return true if the position may be removed from the linked list.
+		inline void remove_match_singular(bwt_range range)
+		{
+			assert(range.is_substring_range_singular());
+			
+			auto const next_character(range.next_substring_leftmost_character(*m_csa));
+			assert(next_character == m_sentinel);
+			range.substring_lf(*m_csa);
+			auto const sa_idx(range.substring_range_left);
+			size_type i(sa_idx - 2);
+			
+			// Store the removal.
+			string_type string;
+			m_strings.get(i, string);
+			assert(string.sa_idx == sa_idx);
+			string.is_unique = 0;
+			m_strings.set(i, string);
+		}
+		
+		inline void remove_match_non_singular(bwt_range range)
+		{
+			assert(!range.is_substring_range_singular());
+
+			auto const count(range.substring_count());
+			assert(2 <= count);
+			range.backward_search_substring(*m_csa, m_sentinel);
+			assert(range.substring_count() == count);
+			
+			size_type i(0);
+			while (i < count)
+			{
+				auto const sa_idx(i + range.substring_range_left);
+				size_type j(sa_idx - 2);
+				
+				// Store the removal.
+				string_type string;
+				m_strings.get(j, string);
+				assert(string.sa_idx == sa_idx);
+				string.is_unique = 0;
+				m_strings.set(j, string);
+				
+				++i;
+			}
+		}
+		
 		inline void handle_singular_range(bwt_range range)
 		{
 			// Suppose the substring range (one that begins with '#') is singular,
@@ -305,7 +384,9 @@ namespace tribble { namespace detail {
 			if (next_character == m_sentinel)
 			{
 				assert(!range.is_match_range_singular());
-				// FIXME: handle the non-unique string.
+				m_index_list.advance_and_mark_skipped();
+				remove_match_singular(range);
+				return;
 			}
 			
 			// Look for the next character in the range that didn't begin with '#'.
@@ -318,14 +399,13 @@ namespace tribble { namespace detail {
 				add_match(range);
 				m_ranges.remove(m_index_list.get_i());
 				m_index_list.advance_and_mark_skipped();
+				return;
 			}
-			else
-			{
-				// Otherwise update the current range in the list and move to the next one.
-				auto const i(m_index_list.get_i());
-				m_ranges.set(i, range);
-				m_index_list.advance();
-			}
+
+			// Otherwise update the current range in the list and move to the next one.
+			auto const i(m_index_list.get_i());
+			m_ranges.set(i, range);
+			m_index_list.advance();
 		}
 		
 		inline void handle_non_singular_range(bwt_range range)
@@ -381,7 +461,11 @@ namespace tribble { namespace detail {
 				if (next_character == m_sentinel)
 				{
 					assert(!new_range.is_match_range_singular());
-					// FIXME: handle the non-unique string.
+					remove_match_non_singular(new_range);
+					auto const substring_count(new_range.substring_count());
+					count_diff -= substring_count;
+					m_index_list.advance_and_mark_skipped(substring_count);
+					continue;
 				}
 				
 				auto const substring_count(new_range.backward_search_substring(*m_csa, next_character));
@@ -393,7 +477,7 @@ namespace tribble { namespace detail {
 					assert(1 == substring_count);
 					assert(1 == match_count);
 					
-					new_range.substring_branching_suffix_length = m_length;
+					new_range.substring_branching_suffix_length = 1 + m_length;
 					new_range.branch_point = new_range.substring_range_left;
 					add_match(new_range);
 					m_ranges.remove(m_index_list.get_i());
@@ -403,7 +487,7 @@ namespace tribble { namespace detail {
 				{
 					if (new_range.is_substring_range_singular())
 					{
-						new_range.substring_branching_suffix_length = m_length;
+						new_range.substring_branching_suffix_length = 1 + m_length;
 						new_range.branch_point = new_range.substring_range_left;
 					}
 					
@@ -416,26 +500,13 @@ namespace tribble { namespace detail {
 			}
 		}
 		
-	public:
-		inline void get_sorted_bwt_indices(sdsl::int_vector <> &target)
-		{
-			target = std::move(m_sorted_bwt_indices);
-		}
-		
-		inline void get_sorted_bwt_start_indices(sdsl::int_vector <> &target)
-		{
-			target = std::move(m_sorted_bwt_start_indices);
-		}
-		
-		inline void get_string_lengths(sdsl::int_vector <> &target)
-		{
-			target = std::move(m_string_lengths);
-		}
-		
-		inline void sort_strings_by_length()
+		void check_non_unique_strings()
 		{
 			auto const csa_size(m_csa->size());
 			
+			// Since the string lengths are now determined as part of index building,
+			// this could be done in much simpler manner by using recursion immediately
+			// and not by storing the intermediate results.
 			while (m_index_list.reset())
 			{
 				while (m_index_list.can_advance())
@@ -449,7 +520,7 @@ namespace tribble { namespace detail {
 					auto const i(m_index_list.get_i());
 					bwt_range range;
 					m_ranges.get(i, range);
-				
+					
 					if (range.is_substring_range_singular())
 						handle_singular_range(range);
 					else
@@ -458,36 +529,19 @@ namespace tribble { namespace detail {
 				
 				++m_length;
 			}
-			
-			// Find substring start positions. Since the substrings were sorted,
-			// the start position is the previous lexicographic index. If the
-			// index points to the suffix "#$", the start position is the last index.
-			for (auto idx : m_sorted_bwt_start_indices)
-			{
-				// idx is an int_vector_reference.
-				assert(idx <= m_initial_range.substring_range_right);
-				if (m_initial_range.substring_range_left == idx)
-					idx = m_initial_range.substring_range_right;
-				else
-					--idx;
-			}
 		}
 	};
 }}
 
 
-void sort_strings_by_length(
+void check_non_unique_strings(
 	csa_type const &csa,
+	sdsl::int_vector <> const &string_lengths,
 	char const sentinel,
-	/* out */ sdsl::int_vector <> &sorted_bwt_indices,
-	/* out */ sdsl::int_vector <> &sorted_bwt_start_indices,
-	/* out */ sdsl::int_vector <> &string_lengths
+	/* out */ tribble::string_array &strings_available
 )
 {
-	tribble::detail::string_sorter sorter(csa, sentinel);
-	sorter.sort_strings_by_length();
-	
-	sorter.get_sorted_bwt_indices(sorted_bwt_indices);
-	sorter.get_sorted_bwt_start_indices(sorted_bwt_start_indices);
-	sorter.get_string_lengths(string_lengths);
+	tribble::detail::branch_checker checker(csa, sentinel, string_lengths);
+	checker.check_non_unique_strings();
+	checker.get_strings_available(strings_available);
 }

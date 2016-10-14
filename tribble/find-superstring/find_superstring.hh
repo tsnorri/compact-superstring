@@ -20,6 +20,7 @@
 
 #include <istream>
 #include <sdsl/cst_sct3.hpp>
+#include "string_array.hh"
 
 #ifndef DEBUGGING_OUTPUT
 #	define DEBUGGING_OUTPUT 0
@@ -81,7 +82,18 @@ struct find_superstring_match_callback
 	virtual void set_substring_count(std::size_t set_substring_count) = 0;
 	virtual void set_alphabet(alphabet_type const &alphabet) = 0;
 	virtual void set_strings_stream(std::istream &strings_stream) = 0;
+	virtual void set_is_unique_vector(sdsl::bit_vector const &vec) = 0;
 	virtual bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) = 0;
+};
+
+
+struct find_superstring_match_dummy_callback : public find_superstring_match_callback
+{
+	void set_substring_count(std::size_t set_substring_count) override;
+	void set_alphabet(alphabet_type const &alphabet) override;
+	void set_strings_stream(std::istream &strings_stream) override;
+	void set_is_unique_vector(sdsl::bit_vector const &vec) override;
+	bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) override;
 };
 
 
@@ -92,12 +104,11 @@ extern "C" void create_index(
 	char const *strings_fname,
 	char const sentinel
 );
-extern "C" void sort_strings_by_length(
+extern "C" void check_non_unique_strings(
 	csa_type const &csa,
+	sdsl::int_vector <> const &string_lengths,
 	char const sentinel,
-	/* out */ sdsl::int_vector <> &sorted_bwt_indices,
-	/* out */ sdsl::int_vector <> &sorted_bwt_start_indices,
-	/* out */ sdsl::int_vector <> &string_lengths
+	/* out */ tribble::string_array &strings_available
 );
 extern "C" void find_suffixes(
 	std::istream &index_stream,

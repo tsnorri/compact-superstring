@@ -63,6 +63,11 @@ namespace tribble {
 			advance(1);
 		}
 		
+		inline void advance_and_mark_skipped()
+		{
+			advance_and_mark_skipped(1);
+		}
+		
 		inline void advance(size_type const count)
 		{
 			std::size_t const next_j_idx(m_i + count);
@@ -71,9 +76,9 @@ namespace tribble {
 			m_i = next_i;
 		}
 		
-		inline void advance_and_mark_skipped()
+		inline void advance_and_mark_skipped(size_type const count)
 		{
-			std::size_t const next_j_idx(m_i + 1);
+			std::size_t const next_j_idx(m_i + count);
 			std::size_t const next_i(m_jump[next_j_idx]);
 			m_jump[m_j_idx] = next_i;
 			m_i = next_i;

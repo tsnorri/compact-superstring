@@ -84,6 +84,9 @@ void Superstring_callback::set_substring_count(std::size_t count){
 void Superstring_callback::set_strings_stream(std::istream &stream){
 }
 
+void Superstring_callback::set_is_unique_vector(sdsl::bit_vector const &vec){
+}
+
 void Superstring_callback::set_alphabet(alphabet_type const &alphabet){
 }
 

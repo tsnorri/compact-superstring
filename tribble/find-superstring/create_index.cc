@@ -85,24 +85,35 @@ public:
 		}
 		
 		std::cerr << "Writing to the strings file…" << std::flush;
-		if (m_sequences.size())
+		auto string_count(m_sequences.size());
+		if (string_count)
 		{
 			tribble::timer timer;
 
 			// Output the first sequence.
-			decltype(m_sequences)::value_type const &previous_seq(m_sequences[0]);
+			decltype(m_sequences)::value_type const *previous_seq(&m_sequences[0]);
 			m_strings_stream << m_sentinel;
-			std::copy(previous_seq.begin(), previous_seq.end(), std::ostream_iterator <char>(m_strings_stream));
+			std::copy(previous_seq->begin(), previous_seq->end(), std::ostream_iterator <char>(m_strings_stream));
 
 			// Output the remaining unique sequences.
-			// Swapping performance for readability.
-			for (auto const &seq : m_sequences)
+			for (auto it(1 + m_sequences.begin()), end(m_sequences.end()); it != end; ++it)
 			{
-				if (seq != previous_seq)
+				auto &seq(*it); // Returns a reference.
+				if (seq == *previous_seq)
+				{
+					--string_count;
+					
+					// Set a placeholder.
+					vector_type empty;
+					seq = std::move(empty);
+					assert(0 == seq.size());
+				}
+				else
 				{
 					// Write the sequence to the specified file.
 					m_strings_stream << m_sentinel;
 					std::copy(seq.begin(), seq.end(), std::ostream_iterator <char>(m_strings_stream));
+					previous_seq = &seq;
 				}
 			}
 			
@@ -138,13 +149,17 @@ public:
 			
 			std::size_t const width(1 + sdsl::bits::hi(max_length));
 			string_lengths.width(width);
-			string_lengths.resize(m_sequences.size());
+			string_lengths.resize(string_count);
 			
 			std::size_t i(0);
 			for (auto const &seq : m_sequences)
 			{
-				string_lengths[i] = seq.size();
-				++i;
+				auto const size(seq.size());
+				if (size)
+				{
+					string_lengths[i] = size;
+					++i;
+				}
 			}
 			
 			timer.stop();
