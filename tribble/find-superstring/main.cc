@@ -135,8 +135,8 @@ int main(int argc, char **argv)
 		open_file_for_reading(args_info.index_file_arg, index_stream);
 		open_file_for_reading(args_info.sorted_strings_file_arg, strings_stream);
 		
-		//tribble::Superstring_callback cb;
-		find_superstring_match_dummy_callback cb;
+		tribble::Superstring_callback cb;
+		//find_superstring_match_dummy_callback cb;
 		find_suffixes(index_stream, strings_stream, '#', cb);
 		cb.build_final_superstring(std::cout);
 	}
