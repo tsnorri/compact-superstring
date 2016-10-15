@@ -43,7 +43,7 @@ public:
 	
 	// Prints the final superstring 'out'. Call only after all prefix-suffix overlaps have been considered
 	// and set_alphabet, set_substring_count and set_strings_stream has been called
-	void build_final_superstring(std::ostream& out);
+	void build_final_superstring(std::ostream& out) override;
 
 private:
 	

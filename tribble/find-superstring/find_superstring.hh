@@ -85,6 +85,7 @@ struct find_superstring_match_callback
 	virtual void set_strings_stream(std::istream &strings_stream) = 0;
 	virtual void set_is_unique_vector(sdsl::bit_vector const &vec) = 0;
 	virtual bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) = 0;
+	virtual void build_final_superstring(std::ostream &) = 0;
 };
 
 
@@ -95,7 +96,7 @@ struct find_superstring_match_dummy_callback : public find_superstring_match_cal
 	void set_strings_stream(std::istream &strings_stream) override;
 	void set_is_unique_vector(sdsl::bit_vector const &vec) override;
 	bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) override;
-	void build_final_superstring(std::ostream &) {}
+	void build_final_superstring(std::ostream &) override;
 };
 
 

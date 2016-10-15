@@ -138,7 +138,6 @@ int main(int argc, char **argv)
 		tribble::Superstring_callback cb;
 		//find_superstring_match_dummy_callback cb;
 		find_suffixes(index_stream, strings_stream, '#', cb);
-		cb.build_final_superstring(std::cout);
 	}
 	else if (args_info.index_visualization_given)
 	{

@@ -274,4 +274,15 @@ void find_suffixes(
 		timer.stop();
 		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
 	}
+	
+	std::cerr << "Building the final superstring…" << std::flush;
+	{
+		auto const event(sdsl::memory_monitor::event("Build superstring"));
+		tribble::timer timer;
+
+		cb.build_final_superstring(std::cout);
+		
+		timer.stop();
+		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
+	}
 }

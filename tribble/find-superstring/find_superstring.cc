@@ -54,3 +54,9 @@ bool find_superstring_match_dummy_callback::callback(
 	
 	return false;
 }
+
+
+void find_superstring_match_dummy_callback::build_final_superstring(std::ostream &)
+{
+	// No-op.
+}
