@@ -21,6 +21,7 @@
 #include <sdsl/wt_algorithm.hpp>
 #include "find_superstring.hh"
 #include "linked_list.hh"
+#include "string_array.hh"
 
 
 namespace tribble { namespace detail {
@@ -199,14 +200,14 @@ namespace tribble { namespace detail {
 	class branch_checker
 	{
 	protected:
-		string_array		m_strings;
-		csa_type const		*m_csa{nullptr};
-		bwt_range_array		m_ranges;
-		linked_list			m_index_list;
-		interval_symbols	m_is_buffer;
-		bwt_range			m_initial_range;
-		size_type			m_length{0};
-		char const			m_sentinel{0};
+		tribble::string_array	m_strings;
+		csa_type const			*m_csa{nullptr};
+		bwt_range_array			m_ranges;
+		linked_list				m_index_list;
+		interval_symbols		m_is_buffer;
+		bwt_range				m_initial_range;
+		size_type				m_length{0};
+		char const				m_sentinel{0};
 		
 	public:
 		branch_checker(csa_type const &csa, char const sentinel, sdsl::int_vector <> const &string_lengths):
@@ -267,7 +268,7 @@ namespace tribble { namespace detail {
 			}
 		}
 		
-		inline void get_strings_available(/* out */ string_array &dst)
+		inline void get_strings_available(/* out */ tribble::string_array &dst)
 		{
 			dst = std::move(m_strings);
 		}
