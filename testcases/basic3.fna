@@ -1,0 +1,12 @@
+> 1
+ACGACG
+> 2
+TTGGAAGGAATTT
+> substring of 2
+GGAAGGAAT
+> substring of 2
+TGGAAGGAA
+> prefix of 2
+TTGGAA
+> suffix of 2
+AATTT
