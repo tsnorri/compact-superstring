@@ -68,19 +68,21 @@ private:
 	
 	std::size_t merges_done; // Number of merges done by try_merge
 	int64_t n_strings; // Total number of input strings
+	int64_t n_unique_strings; // The number of distinct strings that are not a substring of another
 	
 	sdsl::int_vector <> leftend; // See paper
 	sdsl::int_vector <> rightend; // See paper
 	sdsl::int_vector <> next; // See paper
 	sdsl::bit_vector rightavailable; // See paper
 	
-	sdsl::int_vector <> string_successor; // read_successor[i] = the next read from i in the hamiltonian path of the read graph
+	sdsl::int_vector <> string_successor; // read_successor[i] = the next read from i in the directed read graph
 	// if read_successor[i] = n_string, it means the read has no successor
 	
 	sdsl::int_vector <> overlap_lengths; // overlap_lengths[i] = the length of the overlap of read i to the successor of read i
 	
 	alphabet_type alphabet;
 	std::istream* strings_stream; // Raw pointer bad I know, I know
+	const sdsl::bit_vector *is_unique;
 };
 }
 

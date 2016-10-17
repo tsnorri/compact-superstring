@@ -23,10 +23,10 @@
 using namespace tribble;
 
 Superstring_callback::Superstring_callback() 
-:  UF(0), merges_done(0), n_strings(-1) {}
+:  UF(0), merges_done(0), n_strings(-1), n_unique_strings(-1) {}
 
 bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_string, std::size_t overlap_length){
-	
+
 	assert(left_string < leftend.size());
 	assert(right_string < leftend.size());
 	assert(right_string < rightavailable.size());
@@ -39,7 +39,7 @@ bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_
 		leftend[rightend[right_string]] = leftend[left_string];
 		rightend[leftend[left_string]] = rightend[right_string];
 		merges_done++;
-		//std::cout << "Merged " << left_string << " " << right_string << std::endl;
+		std::cout << "Merged " << left_string << " " << right_string << std::endl;
 		return true;
 	}
 	return false;
@@ -82,6 +82,14 @@ void Superstring_callback::set_strings_stream(std::istream &stream){
 }
 
 void Superstring_callback::set_is_unique_vector(sdsl::bit_vector const &vec){
+	
+	this->is_unique = &vec;
+	this->n_unique_strings = 0;
+	for(int64_t i = 0; i < vec.size(); i++){
+		if(vec[i] == 0) make_not_right_available(i);
+		else n_unique_strings++;
+	}
+	
 }
 
 /*  alphabet_type:
@@ -118,16 +126,24 @@ void Superstring_callback::set_alphabet(alphabet_type const &alphabet){
 
 
 bool Superstring_callback::callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end){
-	assert(n_strings != -1);
-	if(merges_done >= n_strings - 1) return true; // No more merges can be done
-	
-	//std::cout << "CALLBACK " << read_lex_rank << " " << match_length << " " << match_sa_begin << " " << match_sa_end << std::endl;
-	assert(read_lex_rank != 0);
-	
+
 	// Change to 0-based indexing
 	read_lex_rank -= 2; 
 	match_sa_begin -= 2;
 	match_sa_end -= 2;
+		
+	// Check that n_strings and u_unique_string have been initialized
+	assert(n_strings != -1);
+	assert(n_unique_strings != -1);
+	
+	// Sanity check
+	assert(read_lex_rank >= 0 && read_lex_rank < n_strings);
+	
+	if((*is_unique)[read_lex_rank] == 0) return false;
+	if(merges_done >= n_unique_strings - 1) return true; // No more merges can be done
+	
+	// Find two indices in the match_sa range that are right-available, and
+	// try to merge read_lex_rank to one of them
 	
 	std::size_t k; // Position of the next one-bit in right-available
 	if(match_sa_begin > 0) k = get_next_right_available(match_sa_begin-1);
@@ -221,12 +237,12 @@ void Superstring_callback::do_path(int64_t start_string, std::ostream& out, sdsl
 		// Write the right string skipping the first 'overlap' characters
 		write_string(string_start_points[right_string], overlap, out, concatenation);
 		current_string_idx = right_string;
-	}	
+	}
 }
 
 void Superstring_callback::build_final_superstring(std::ostream& out){
 
-	// Assuming the stream out contains the concatenation of all strings
+	// Assuming the stream 'out' contains the concatenation of all strings
 	// separated by the '#' character i.e.
 	// #s1#s2#s3#s3#s4#s5#s6#
 	
