@@ -9,7 +9,7 @@ fi
 
 # Clean up
 rm -f testcases/${name}.sdsl
-rm -f testcases/${basic}.sorted
+rm -f testcases/${name}.sorted
 
 # Build index
 ./tribble/find-superstring/find-superstring -C -f testcases/${name}.fna -i testcases/${name}.sdsl -s testcases/${name}.sorted
