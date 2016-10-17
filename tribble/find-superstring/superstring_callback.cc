@@ -26,28 +26,28 @@ Superstring_callback::Superstring_callback()
 :  UF(0), merges_done(0), n_strings(-1) {}
 
 bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_string, std::size_t overlap_length){
-    
+	
 	assert(left_string < leftend.size());
 	assert(right_string < leftend.size());
 	assert(right_string < rightavailable.size());
-    assert(rightavailable[right_string]);
+	assert(rightavailable[right_string]);
 
-    if(leftend[left_string] != right_string){
+	if(leftend[left_string] != right_string){
 		string_successor[left_string] = right_string;
 		overlap_lengths[left_string] = overlap_length; 
-        make_not_right_available(right_string);
-        leftend[rightend[right_string]] = leftend[left_string];
-        rightend[leftend[left_string]] = rightend[right_string];
-        merges_done++;
-        //std::cout << "Merged " << left_string << " " << right_string << std::endl;
-        return true;
-    }
-    return false;
+		make_not_right_available(right_string);
+		leftend[rightend[right_string]] = leftend[left_string];
+		rightend[leftend[left_string]] = rightend[right_string];
+		merges_done++;
+		//std::cout << "Merged " << left_string << " " << right_string << std::endl;
+		return true;
+	}
+	return false;
 }
 
 
 void Superstring_callback::set_substring_count(std::size_t count){
-    n_strings = count;
+	n_strings = count;
 	std::size_t const bits_for_count(1 + sdsl::bits::hi(count));
 	std::size_t const bits_for_next(1 + sdsl::bits::hi(1 + count));
 	
@@ -60,21 +60,21 @@ void Superstring_callback::set_substring_count(std::size_t count){
 	overlap_lengths.resize(n_strings);
 	string_successor.resize(n_strings);
 	leftend.resize(n_strings);
-    rightend.resize(n_strings);
-    next.resize(n_strings);
+	rightend.resize(n_strings);
+	next.resize(n_strings);
 	
 	rightavailable.resize(n_strings);
 	
-    for(std::size_t i = 0; i < n_strings; i++){
+	for(std::size_t i = 0; i < n_strings; i++){
 		overlap_lengths[i] = 0;
 		string_successor[i] = n_strings;
-        leftend[i] = i;
-        rightend[i] = i;
-        next[i] = i+1;
-        rightavailable[i] = true;
+		leftend[i] = i;
+		rightend[i] = i;
+		next[i] = i+1;
+		rightavailable[i] = true;
 		
-    }
-    UF.initialize(n_strings);
+	}
+	UF.initialize(n_strings);
 }
 
 void Superstring_callback::set_strings_stream(std::istream &stream){
@@ -85,31 +85,31 @@ void Superstring_callback::set_is_unique_vector(sdsl::bit_vector const &vec){
 }
 
 /*  alphabet_type:
-        public:
-        typedef int_vector<>::size_type size_type;
-        typedef int_vector<8>           char2comp_type;
-        typedef int_vector<8>           comp2char_type;
-        typedef int_vector<64>          C_type;
-        typedef uint16_t                sigma_type;
-        typedef uint8_t                 char_type;
-        typedef uint8_t                 comp_char_type;
-        typedef std::string             string_type;
-        enum { int_width = 8 };
+		public:
+		typedef int_vector<>::size_type size_type;
+		typedef int_vector<8>		   char2comp_type;
+		typedef int_vector<8>		   comp2char_type;
+		typedef int_vector<64>		  C_type;
+		typedef uint16_t				sigma_type;
+		typedef uint8_t				 char_type;
+		typedef uint8_t				 comp_char_type;
+		typedef std::string			 string_type;
+		enum { int_width = 8 };
 
-        typedef byte_alphabet_tag       alphabet_category;
-    private:
-        char2comp_type m_char2comp; // Mapping from a character into the compact alphabet.
-        comp2char_type m_comp2char; // Inverse mapping of m_char2comp.
-        C_type         m_C;         // Cumulative counts for the compact alphabet [0..sigma].
-        sigma_type     m_sigma;     // Effective size of the alphabet.
+		typedef byte_alphabet_tag	   alphabet_category;
+	private:
+		char2comp_type m_char2comp; // Mapping from a character into the compact alphabet.
+		comp2char_type m_comp2char; // Inverse mapping of m_char2comp.
+		C_type		 m_C;		 // Cumulative counts for the compact alphabet [0..sigma].
+		sigma_type	 m_sigma;	 // Effective size of the alphabet.
 
-        void copy(const byte_alphabet&);
-    public:
+		void copy(const byte_alphabet&);
+	public:
 
-        const char2comp_type& char2comp;
-        const comp2char_type& comp2char;
-        const C_type&         C;
-        const sigma_type&     sigma;
+		const char2comp_type& char2comp;
+		const comp2char_type& comp2char;
+		const C_type&		 C;
+		const sigma_type&	 sigma;
 */
 
 void Superstring_callback::set_alphabet(alphabet_type const &alphabet){
@@ -118,81 +118,81 @@ void Superstring_callback::set_alphabet(alphabet_type const &alphabet){
 
 
 bool Superstring_callback::callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end){
-    assert(n_strings != -1);
-    if(merges_done >= n_strings - 1) return true; // No more merges can be done
-    
-    //std::cout << "CALLBACK " << read_lex_rank << " " << match_length << " " << match_sa_begin << " " << match_sa_end << std::endl;
-    assert(read_lex_rank != 0);
-    
-    // Change to 0-based indexing
-    read_lex_rank -= 2; 
-    match_sa_begin -= 2;
-    match_sa_end -= 2;
-    
-    std::size_t k; // Position of the next one-bit in right-available
-    if(match_sa_begin > 0) k = get_next_right_available(match_sa_begin-1);
+	assert(n_strings != -1);
+	if(merges_done >= n_strings - 1) return true; // No more merges can be done
+	
+	//std::cout << "CALLBACK " << read_lex_rank << " " << match_length << " " << match_sa_begin << " " << match_sa_end << std::endl;
+	assert(read_lex_rank != 0);
+	
+	// Change to 0-based indexing
+	read_lex_rank -= 2; 
+	match_sa_begin -= 2;
+	match_sa_end -= 2;
+	
+	std::size_t k; // Position of the next one-bit in right-available
+	if(match_sa_begin > 0) k = get_next_right_available(match_sa_begin-1);
 	else {
 		if(rightavailable[0] == 1) k = 0;
 		else k = get_next_right_available(match_sa_begin);
 	}
 	
-    if(k > match_sa_end) {
-        // Next one is outside of the suffix array interval, or not found at all
-        return false;
-    }
-    
-    if(try_merge(read_lex_rank, k, match_length)) return true;
-    
-    // Failed, try again a second time
-    k = get_next_right_available(k);
-    
-    if(k > match_sa_end) {
-        // Next one is outside of the suffix array interval, or not found at all
-        return false;
-    }
-    
-    if(try_merge(read_lex_rank, k, match_length)) return true;
-    
-    return false; // Should never come here, because the second try should always be succesful
-    
+	if(k > match_sa_end) {
+		// Next one is outside of the suffix array interval, or not found at all
+		return false;
+	}
+	
+	if(try_merge(read_lex_rank, k, match_length)) return true;
+	
+	// Failed, try again a second time
+	k = get_next_right_available(k);
+	
+	if(k > match_sa_end) {
+		// Next one is outside of the suffix array interval, or not found at all
+		return false;
+	}
+	
+	if(try_merge(read_lex_rank, k, match_length)) return true;
+	
+	return false; // Should never come here, because the second try should always be succesful
+	
 }
 
 
 void Superstring_callback::make_not_right_available(std::size_t index){
 
-    
-    // the position of the next one-bit in right-available
-    std::size_t q = next[UF.find(index)];
-    
-    // Merge to the right if needed
-    if(index < n_strings-1 && rightavailable[index+1] == 0)
-        UF.doUnion(UF.find(index), UF.find(index+1));
-    
-    // Merge to the left
-    if(index > 0)
-        UF.doUnion(UF.find(index), UF.find(index-1));
-    
-    rightavailable[index] = 0;
-    next[UF.find(index)] = q;
+	
+	// the position of the next one-bit in right-available
+	std::size_t q = next[UF.find(index)];
+	
+	// Merge to the right if needed
+	if(index < n_strings-1 && rightavailable[index+1] == 0)
+		UF.doUnion(UF.find(index), UF.find(index+1));
+	
+	// Merge to the left
+	if(index > 0)
+		UF.doUnion(UF.find(index), UF.find(index-1));
+	
+	rightavailable[index] = 0;
+	next[UF.find(index)] = q;
 }
 
 
 
 std::size_t Superstring_callback::get_next_right_available(std::size_t index){
-    std::size_t k = UF.find(index);
-    if(k == n_strings) return k;
-    else return next[k];
+	std::size_t k = UF.find(index);
+	if(k == n_strings) return k;
+	else return next[k];
 }
 
 /* Simple O(n^2) implementation for testing purposes
 std::size_t Superstring_callback::get_next_right_available(std::size_t index){
 
-    for(std::size_t i = index+1; i < n_strings; i++){
+	for(std::size_t i = index+1; i < n_strings; i++){
 		assert(i < rightavailable.size());
-        if(rightavailable[i]) 
-            return i;
-    }
-    return n_strings;
+		if(rightavailable[i]) 
+			return i;
+	}
+	return n_strings;
 }*/
 
 void Superstring_callback::write_string(int64_t string_start, int64_t skip, std::ostream& out, sdsl::int_vector<0>& concatenation){
@@ -208,8 +208,8 @@ void Superstring_callback::write_string(int64_t string_start, int64_t skip, std:
 }
 
 void Superstring_callback::do_path(int64_t start_string, std::ostream& out, sdsl::int_vector<0>& concatenation, sdsl::int_vector<0>& string_start_points){
-    // Concatenate all strings putting in the overlapping region of adjacent strings only once
-    // Write out the first string as a whole
+	// Concatenate all strings putting in the overlapping region of adjacent strings only once
+	// Write out the first string as a whole
 	write_string(string_start_points[start_string], 0, out, concatenation);
 	
 	int64_t current_string_idx = start_string;
@@ -221,7 +221,7 @@ void Superstring_callback::do_path(int64_t start_string, std::ostream& out, sdsl
 		// Write the right string skipping the first 'overlap' characters
 		write_string(string_start_points[right_string], overlap, out, concatenation);
 		current_string_idx = right_string;
-    }	
+	}	
 }
 
 void Superstring_callback::build_final_superstring(std::ostream& out){
@@ -264,7 +264,7 @@ void Superstring_callback::build_final_superstring(std::ostream& out){
 	assert(n_strings_read != 0);
 	
 	std::size_t current_string_idx = n_strings;
-    
+	
 	// Concatenate all paths in the graph defined by the string_successor array
 	for(std::size_t i = 0; i < n_strings; i++){
 		if(rightavailable[i]){ // successor to none of the strings i.e. start of a path
