@@ -37,16 +37,16 @@ namespace tribble {
 		bool		is_unique;
 		
 		string_type():
-			string_type(0, 0)
+			string_type(0, 0, false)
 		{
 		}
 		
-		string_type(size_type const idx, size_type const len):
+		string_type(size_type const idx, size_type const len, bool const is_unique):
 			sa_idx(idx),
 			match_start_sa_idx(0),
 			length(len),
 			branching_suffix_length(0),
-			is_unique(true)
+			is_unique(is_unique)
 		{
 		}
 		

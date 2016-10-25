@@ -14,6 +14,7 @@
  along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
+#include <range/v3/all.hpp>
 #include <sdsl/bits.hpp>
 #include <sdsl/csa_wt.hpp>
 #include <sdsl/int_vector.hpp>
@@ -35,8 +36,6 @@ namespace tribble { namespace detail {
 		size_type substring_range_right{0};
 		size_type match_range_left{0};
 		size_type match_range_right{0};
-		size_type branch_point{0};
-		size_type substring_branching_suffix_length{0};
 		
 		bwt_range() = default;
 		
@@ -71,12 +70,6 @@ namespace tribble { namespace detail {
 			set_substring_range_singular(lf_val);
 		}
 		
-		inline void branch_point_psi(csa_type const &csa)
-		{
-			auto const psi_val(csa.psi[branch_point]); // FIXME: check exact time.
-			branch_point = psi_val;
-		}
-		
 		inline size_type backward_search_substring(csa_type const &csa, csa_type::char_type c)
 		{
 			return sdsl::backward_search(csa, substring_range_left, substring_range_right, c, substring_range_left, substring_range_right);
@@ -89,161 +82,56 @@ namespace tribble { namespace detail {
 	};
 	
 	
-	class bwt_range_array
-	{
-	protected:
-#ifdef DEBUGGING_OUTPUT
-		sdsl::bit_vector	m_used_indices;
-#endif
-
-		sdsl::int_vector <> m_substring_ranges;						// Ranges that have '#' on the right.
-		sdsl::int_vector <> m_match_ranges;							// Ranges without the '#' on the right.
-		sdsl::int_vector <> m_branch_points;
-		sdsl::int_vector <> m_substring_branching_suffix_lengths;
-		
-	public:
-		bwt_range_array() = default;
-		
-		bwt_range_array(std::size_t const count, std::size_t const bits):
-#ifdef DEBUGGING_OUTPUT
-			m_used_indices(count, 0),
-#endif
-			m_substring_ranges(2 * count, 0, bits),
-			m_match_ranges(2 * count, 0, bits),
-			m_branch_points(count, 0, bits),
-			m_substring_branching_suffix_lengths(count, 0, bits)
-		{
-		}
-		
-		inline void get(std::size_t const k, bwt_range &range) const
-		{
-#ifdef DEBUGGING_OUTPUT
-			assert(m_used_indices[k]);
-#endif
-			range.substring_range_left				= m_substring_ranges[2 * k];
-			range.substring_range_right				= m_substring_ranges[2 * k + 1];
-			range.match_range_left					= m_match_ranges[2 * k];
-			range.match_range_right					= m_match_ranges[2 * k + 1];
-			range.branch_point						= m_branch_points[k];
-			range.substring_branching_suffix_length	= m_substring_branching_suffix_lengths[k];
-		}
-		
-		inline void set(std::size_t const k, bwt_range const &range)
-		{
-			m_substring_ranges[2 * k]				= range.substring_range_left;
-			m_substring_ranges[2 * k + 1]			= range.substring_range_right;
-			m_match_ranges[2 * k]					= range.match_range_left;
-			m_match_ranges[2 * k + 1]				= range.match_range_right;
-			m_branch_points[k]						= range.branch_point;
-			m_substring_branching_suffix_lengths[k]	= range.substring_branching_suffix_length;
-			
-#ifdef DEBUGGING_OUTPUT
-			m_used_indices[k]				= 1;
-#endif
-		}
-		
-		inline void remove(std::size_t const k)
-		{
-			// Generally no-op.
-#ifdef DEBUGGING_OUTPUT
-			m_used_indices[k] = 0;
-#endif
-		}
-		
-		inline void print() const
-		{
-			// m_used_indices does not exist if DEBUGGING_OUTPUT has not been defined.
-#ifdef DEBUGGING_OUTPUT
-			std::cerr << "Substring ranges:       ";
-			for (std::size_t i(0), count(m_used_indices.size()); i < count; ++i)
-			{
-				if (m_used_indices[i])
-					std::cerr << " " << i << ": [" << m_substring_ranges[2 * i] << ", " << m_substring_ranges[2 * i + 1] << "]";
-			}
-			std::cerr << std::endl;
-			
-			std::cerr << "Match ranges:           ";
-			for (std::size_t i(0), count(m_used_indices.size()); i < count; ++i)
-			{
-				if (m_used_indices[i])
-					std::cerr << " " << i << ": [" << m_match_ranges[2 * i] << ", " << m_match_ranges[2 * i + 1] << "]";
-			}
-			std::cerr << std::endl;
-			
-			std::cerr << "Branching suffix lengths:";
-			for (std::size_t i(0), count(m_used_indices.size()); i < count; ++i)
-			{
-				if (m_used_indices[i])
-					std::cerr << " " << m_substring_branching_suffix_lengths[i];
-			}
-			std::cerr << std::endl;
-#endif
-		}
-	};
-	
-	
-	struct interval_symbols
-	{
-		std::vector <wt_value_type> cs;
-		std::vector <wt_size_type> rank_c_i;
-		std::vector <wt_size_type> rank_c_j;
-		
-		interval_symbols(std::size_t const sigma):
-			cs(sigma),
-			rank_c_i(sigma),
-			rank_c_j(sigma)
-		{
-		}
-	};
-	
-	
 	class branch_checker
 	{
 	protected:
 		tribble::string_array	m_strings;
-		csa_type const			*m_csa{nullptr};
-		bwt_range_array			m_ranges;
-		linked_list				m_index_list;
-		interval_symbols		m_is_buffer;
 		bwt_range				m_initial_range;
-		size_type				m_length{0};
+		sdsl::int_vector <>		m_rank_c_i;
+		sdsl::int_vector <>		m_rank_c_j;
+		csa_type const			*m_csa{nullptr};
+		wt_type const			*m_wt{nullptr};
 		char const				m_sentinel{0};
 		
 	public:
 		branch_checker(csa_type const &csa, char const sentinel, sdsl::int_vector <> const &string_lengths):
 			m_csa(&csa),
-			m_is_buffer(csa.wavelet_tree.sigma),
+			m_wt(&csa.wavelet_tree),
 			m_sentinel(sentinel)
 		{
-			size_type csa_size(m_csa->size());
+			size_type const csa_size(m_csa->size());
 			size_type left(0), right(csa_size - 1);
-			auto string_count(sdsl::backward_search(*m_csa, left, right, m_sentinel, left, right));
+			auto const string_count(sdsl::backward_search(*m_csa, left, right, m_sentinel, left, right));
+
 			if (2 <= string_count)
 			{
 				// Fill m_strings with index and length pairs.
 				
 				assert(string_lengths.size() == string_count - 1);
-			
+				
 				auto const bits_for_n(1 + sdsl::bits::hi(csa_size));
 				auto const bits_for_max_length(string_lengths.width());
 				auto const bits_for_m(1 + sdsl::bits::hi(string_count));
 				auto const bits_for_m_1(1 + sdsl::bits::hi(1 + string_count));
 				
+				// Initialize the result array.
 				{
-					tribble::string_array tmp(string_count - 1, bits_for_m, bits_for_n, bits_for_max_length);
-					m_strings = std::move(tmp);
-				}
-
-				{
-					size_type i(0);
-					for (auto const length : string_lengths)
 					{
-						// Remove “#$”.
-						auto const sa_idx(1 + left + i);
-						assert(sa_idx <= right);
-						string_type string(sa_idx, length);
-						m_strings.set(i, string);
-						++i;
+						tribble::string_array tmp(string_count - 1, bits_for_m, bits_for_n, bits_for_max_length);
+						m_strings = std::move(tmp);
+					}
+					
+					{
+						size_type i(0);
+						for (auto const length : string_lengths)
+						{
+							// Remove “#$”.
+							auto const sa_idx(1 + left + i);
+							assert(sa_idx <= right);
+							string_type string(sa_idx, length, false);
+							m_strings.set(i, string);
+							++i;
+						}
 					}
 				}
 				
@@ -254,282 +142,226 @@ namespace tribble { namespace detail {
 					m_initial_range = std::move(initial_range);
 				}
 				
-				// Prepare other data structures.
+				// Prepare the reusable buffers for interval_symbols.
 				{
-					bwt_range_array ranges(1 + string_count, bits_for_n);
-					ranges.set(0, m_initial_range);
-					m_ranges = std::move(ranges);
-				}
-				
-				{
-					linked_list index_list(1 + string_count, bits_for_m_1);
-					m_index_list = std::move(index_list);
+					auto const sigma(m_wt->sigma);
+					m_rank_c_i.width(bits_for_n);
+					m_rank_c_j.width(bits_for_n);
+					m_rank_c_i.resize(sigma);
+					m_rank_c_j.resize(sigma);
 				}
 			}
 		}
 		
-		inline void get_strings_available(/* out */ tribble::string_array &dst)
+
+		// Get the result.
+		inline void get_strings_available(tribble::string_array /* out */ &dst)
 		{
 			dst = std::move(m_strings);
 		}
 		
-		inline void add_match(bwt_range range)
+		
+	protected:
+		void add_match(size_type const branch_point, size_type const branching_suffix_length)
 		{
-			assert(range.has_equal_ranges());
-
 			if (DEBUGGING_OUTPUT)
 			{
-				std::cerr << "*** Adding a match for range ["
-					<< range.substring_range_left << ", " << range.substring_range_right
-					<< "]" << std::endl;
+				std::cerr << "*** Adding a match for branch_point " << branch_point << ", length " << branching_suffix_length << std::endl;
 			}
-
-			auto const range_match_start(range.match_range_left);
-			auto const range_branch_point(range.branch_point);
 			
-			// Find the end of the substring.
-			for (std::size_t i(0); i < range.substring_branching_suffix_length; ++i)
-				range.branch_point_psi(*m_csa);
-
-			auto const range_substring_end(range.branch_point);
-			size_type range_substring_start(0);
+			// Find the end of the substring that contains branch_point.
+			size_type end_sa_idx(branch_point);
+			for (std::size_t i(0); i < branching_suffix_length; ++i)
+			{
+				auto const psi_val(m_csa->psi[end_sa_idx]); // FIXME: check the exact time.
+				end_sa_idx = psi_val;
+			}
 			
 			// Convert to start position.
-			assert(range_substring_end <= m_initial_range.substring_range_right);
-			if (m_initial_range.substring_range_left == range_substring_end)
-				range_substring_start = m_initial_range.substring_range_right;
+			size_type start_sa_idx(0);
+			assert(end_sa_idx <= m_initial_range.substring_range_right);
+			if (m_initial_range.substring_range_left == end_sa_idx)
+				start_sa_idx = m_initial_range.substring_range_right;
 			else
-				range_substring_start = range_substring_end - 1;
+				start_sa_idx = end_sa_idx - 1;
 			
-			size_type i(range_substring_start - 2);
+			size_type i(start_sa_idx - 2);
 			
 			// Store the values.
 			string_type string;
 			m_strings.get(i, string);
-			assert(string.sa_idx == range_substring_start);
+			assert(string.sa_idx == start_sa_idx);
 			string.is_unique = true;
-			string.match_start_sa_idx = range_match_start;
-			string.branching_suffix_length = 1 + m_length;
+			string.match_start_sa_idx = branch_point;
+			string.branching_suffix_length = branching_suffix_length;
 			m_strings.set(i, string);
 		}
 		
-		inline void remove_match_singular(bwt_range range)
-		{
-			assert(range.is_substring_range_singular());
-			
-			auto const next_character(range.next_substring_leftmost_character(*m_csa));
-			assert(next_character == m_sentinel);
-			range.substring_lf(*m_csa);
-			auto const sa_idx(range.substring_range_left);
-			size_type i(sa_idx - 2);
-			
-			// Store the removal.
-			string_type string;
-			m_strings.get(i, string);
-			assert(string.sa_idx == sa_idx);
-			string.is_unique = 0;
-			m_strings.set(i, string);
-		}
-		
-		inline void remove_match_non_singular(bwt_range range)
-		{
-			assert(!range.is_substring_range_singular());
 
-			auto const count(range.substring_count());
-			assert(2 <= count);
-			range.backward_search_substring(*m_csa, m_sentinel);
-			assert(range.substring_count() == count);
-			
-			size_type i(0);
-			while (i < count)
-			{
-				auto const sa_idx(i + range.substring_range_left);
-				size_type j(sa_idx - 2);
-				
-				// Store the removal.
-				string_type string;
-				m_strings.get(j, string);
-				assert(string.sa_idx == sa_idx);
-				string.is_unique = 0;
-				m_strings.set(j, string);
-				
-				++i;
-			}
-		}
-		
-		inline void handle_singular_range(bwt_range range)
+		template <size_type t_recursion_limit, bool t_is_first_range>
+		void check_non_unique_strings(bwt_range const &initial_range, size_type const current_length)
 		{
-			// Suppose the substring range (one that begins with '#') is singular,
-			// i.e. the left bound is equal to the right bound. Check the next
-			// character and look for it in the range of the whole concatenated
-			// string (“match range”). If that range becomes singular, a branching
-			// point for the suffix of the substring in question has been found and
-			// may be stored by calling add_match().
+			// List the symbols that precede the ones in initial_range. Handle the
+			// special cases where the character is either '$' (in case of t_is_first_range)
+			// or '#'. After that, recurse in case the range length is less than half of that
+			// of the initial range, or do tail recursion otherwise. If the substring range
+			// has become singular, use LF repeatedly to find the preceding character and use
+			// backward_search on the match range until it becomes singular, too.
 			
-			// Check the next character.
-			auto const next_character(range.next_substring_leftmost_character(*m_csa));
+			auto const initial_substring_count(initial_range.substring_count());
 			
-			// The substring range should not become singular before the suffix “$#”
-			// has been handled. Hence it doesn't need to be handled here.
-			assert(0 != next_character);
-			// FIXME: does to above statement hold? if not, the relevant code is below.
-#if 0
-			if (0 == next_character)
-			{
-				m_index_list.advance_and_mark_skipped();
-				return;
-			}
-#endif
+			// Smaller number of strings should be handled as a special case, which
+			// has not been written yet.
+			assert(1 < initial_substring_count);
 			
-			// Check if the current substring range represents non-unique strings.
-			if (next_character == m_sentinel)
-			{
-				assert(!range.is_match_range_singular());
-				m_index_list.advance_and_mark_skipped();
-				remove_match_singular(range);
-				return;
-			}
-			
-			// Look for the next character in the range that didn't begin with '#'.
-			range.substring_lf(*m_csa);
-			auto const match_count(range.backward_search_match(*m_csa, next_character));
-			assert(match_count);
-			if (range.is_match_range_singular())
-			{
-				// Since the match range became singular, we have found the branching point.
-				add_match(range);
-				m_ranges.remove(m_index_list.get_i());
-				m_index_list.advance_and_mark_skipped();
-				return;
-			}
-
-			// Otherwise update the current range in the list and move to the next one.
-			auto const i(m_index_list.get_i());
-			m_ranges.set(i, range);
-			m_index_list.advance();
-		}
-		
-		inline void handle_non_singular_range(bwt_range range)
-		{
-			// Suppose the substring range (one that begins with '#') is not singular,
-			// i.e. the left bound is not equal to the right bound. Use the wavelet tree
-			// to list all the distinct characters in that range. First check for the '$'
-			// character and skip it. Then iterate over the remaining characters and
-			// use backward_search to find the matching substrings. Also use
-			// backward_search on the current substring in order to reduce the number of
-			// possible symbols.
-			
-			auto const original_substring_count(range.substring_count());
-			std::size_t count_diff(original_substring_count);
-			assert(1 < original_substring_count);
+			// Since the alphabet in our case is small, use an array
+			// on the stack for storing interval_symbols's results.
+			auto const sigma(m_wt->sigma);
+			wt_value_type cs[sigma];
+			wt_value_type *cs_ptr(cs);
 			
 			wt_size_type symbol_count{0}, si{0};
 			sdsl::interval_symbols(
-				m_csa->wavelet_tree,
-				range.substring_range_left,
-				1 + range.substring_range_right,
+				*m_wt,
+				initial_range.substring_range_left,
+				1 + initial_range.substring_range_right,
 				symbol_count,
-				m_is_buffer.cs,
-				m_is_buffer.rank_c_i,
-				m_is_buffer.rank_c_j
+				cs_ptr,
+				m_rank_c_i,
+				m_rank_c_j
 			);
-
-			assert(symbol_count);
-
-			// For some reason cs is not lexicographically ordered even though the wavelet tree is balanced.
-			if (true || !wt_type::lex_ordered)
-				std::sort(m_is_buffer.cs.begin(), symbol_count + m_is_buffer.cs.begin());
 			
-			// Handle the '$' character.
-			if (0 == m_is_buffer.cs[si])
+			// FIXME: for some reason cs is not lexicographically ordered even though the wavelet tree is balanced.
+			if (true || !wt_type::lex_ordered)
 			{
-				++si;
-				--count_diff;
-				m_ranges.remove(m_index_list.get_i());
-				m_index_list.advance_and_mark_skipped();
+				auto cs_range(ranges::view::unbounded(cs_ptr));
+				auto range(ranges::view::take_exactly(
+					ranges::view::zip(
+						cs_range,
+						m_rank_c_i,
+						m_rank_c_j
+					),
+					symbol_count
+				));
+
+				ranges::sort(range, [](auto const &lhs, auto const &rhs) -> bool {
+					return std::get <0>(lhs) < std::get <0>(rhs);
+				});
 			}
 			
-			while (count_diff)
+			// Handle the first range (i.e. [0, csa.size() - 1]) separately;
+			// other cases have the assertion below.
+			if (t_is_first_range)
 			{
-				bwt_range new_range(range);
+				// Handle the '$' character by skipping it.
+				if (0 == cs[si])
+					++si;
+			}
+			else
+			{
+				// If this is not the first range, the first character should not be '$'.
+				assert(0 != cs[si]);
+			}
+			
+			// Check if the current substring range represents non-unique strings.
+			if (cs[si] == m_sentinel)
+			{
+				// Represents unique string if match range is singular.
+				assert(!initial_range.is_match_range_singular());
+				++si;
+			}
+			
+			// Proceed with the remaining characters.
+			bwt_range remaining_range;
+			bool should_handle_remaining_range(false);
 
+			while (si < symbol_count)
+			{
+				bwt_range range(initial_range);
+				
 				// Check the next character.
-				assert(si < symbol_count);
-				auto const next_character(m_is_buffer.cs[si++]);
+				auto const next_character(cs[si++]);
 				assert(next_character);
 				
-				// Check if the current substring range represents non-unique strings.
-				if (next_character == m_sentinel)
+				auto const substring_count(range.backward_search_substring(*m_csa, next_character));
+				auto match_count(range.backward_search_match(*m_csa, next_character));
+				assert(substring_count);
+
+				// Check if the current count exceeds recursion limit.
+				if (t_recursion_limit <= initial_substring_count && initial_substring_count / 2 < substring_count)
 				{
-					assert(!new_range.is_match_range_singular());
-					remove_match_non_singular(new_range);
-					auto const substring_count(new_range.substring_count());
-					count_diff -= substring_count;
-					m_index_list.advance_and_mark_skipped(substring_count);
+					// There should only be one remaining_range since its size is greater than
+					// one half of the initial range.
+					assert(!should_handle_remaining_range);
+					
+					should_handle_remaining_range = true;
+					remaining_range = std::move(range);
+					
 					continue;
 				}
 				
-				auto const substring_count(new_range.backward_search_substring(*m_csa, next_character));
-				auto const match_count(new_range.backward_search_match(*m_csa, next_character));
-				assert(match_count);
-				
-				if (new_range.is_match_range_singular())
+				if (1 != substring_count)
 				{
-					assert(1 == substring_count);
-					assert(1 == match_count);
-					
-					new_range.substring_branching_suffix_length = 1 + m_length;
-					new_range.branch_point = new_range.substring_range_left;
-					add_match(new_range);
-					m_ranges.remove(m_index_list.get_i());
-					m_index_list.advance_and_mark_skipped();
+					// There are more than one possible substring, recurse.
+					check_non_unique_strings <t_recursion_limit, false>(range, 1 + current_length);
 				}
 				else
 				{
-					if (new_range.is_substring_range_singular())
+					auto string_length(current_length);
+					while (1 != match_count)
 					{
-						new_range.substring_branching_suffix_length = 1 + m_length;
-						new_range.branch_point = new_range.substring_range_left;
+						// Check the next character.
+						auto const next_character(range.next_substring_leftmost_character(*m_csa));
+						
+						// The substring range should not become singular before the suffix “$#”
+						// has been handled. Hence it doesn't need to be handled here.
+						assert(0 != next_character);
+						
+						// Check if the current substring range represents non-unique strings.
+						if (next_character == m_sentinel)
+						{
+							assert(!range.is_match_range_singular());
+							goto end_range;
+						}
+						
+						// Look for the next character in the range that didn't begin with '#'.
+						range.substring_lf(*m_csa);
+						match_count = range.backward_search_match(*m_csa, next_character);
+						
+						// There should be at least one match b.c. the substring range has the same character.
+						assert(match_count);
+						
+						++string_length;
 					}
 					
-					auto const i(m_index_list.get_i());
-					m_ranges.set(i, new_range);
-					m_index_list.advance(substring_count);
+					// The match range should have become singular (not zero) by now.
+					assert(range.is_match_range_singular());
+					
+					// The ranges should be equal by now since the match range has become singular.
+					assert(range.has_equal_ranges());
+					
+					// Since the match range became singular, we have found the branching point.
+					add_match(range.substring_range_left, 1 + string_length);
 				}
 				
-				count_diff -= substring_count;
+			end_range:
+				;
+			}
+			
+			// If there was a long range, handle it.
+			if (should_handle_remaining_range)
+			{
+				// Tail recursion.
+				check_non_unique_strings <t_recursion_limit, false>(remaining_range, 1 + current_length);
 			}
 		}
 		
+		
+	public:
 		void check_non_unique_strings()
 		{
-			auto const csa_size(m_csa->size());
-			
-			// Since the string lengths are now determined as part of index building,
-			// this could be done in much simpler manner by using recursion immediately
-			// and not by storing the intermediate results.
-			while (m_index_list.reset())
-			{
-				while (m_index_list.can_advance())
-				{
-					if (DEBUGGING_OUTPUT)
-					{
-						m_index_list.print();
-						m_ranges.print();
-					}
-					
-					auto const i(m_index_list.get_i());
-					bwt_range range;
-					m_ranges.get(i, range);
-					
-					if (range.is_substring_range_singular())
-						handle_singular_range(range);
-					else
-						handle_non_singular_range(range);
-				}
-				
-				++m_length;
-			}
+			// Recursion limit chosen somewhat arbitrarily.
+			check_non_unique_strings <32, true>(m_initial_range, 0);
 		}
 	};
 }}
@@ -539,7 +371,7 @@ void check_non_unique_strings(
 	csa_type const &csa,
 	sdsl::int_vector <> const &string_lengths,
 	char const sentinel,
-	/* out */ tribble::string_array &strings_available
+	tribble::string_array /* out */ &strings_available
 )
 {
 	tribble::detail::branch_checker checker(csa, sentinel, string_lengths);
