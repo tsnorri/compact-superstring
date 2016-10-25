@@ -39,7 +39,11 @@ bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_
 		leftend[rightend[right_string]] = leftend[left_string];
 		rightend[leftend[left_string]] = rightend[right_string];
 		merges_done++;
-		std::cout << "Merged " << left_string << " " << right_string << std::endl;
+		
+		if (DEBUGGING_OUTPUT)
+		{
+			std::cout << "Merged " << left_string << " " << right_string << std::endl;
+		}
 		return true;
 	}
 	return false;
