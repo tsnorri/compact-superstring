@@ -3,6 +3,10 @@ tribble/find-superstring/cmdline.c
 tribble/find-superstring/cmdline.h
 tribble/find-superstring/find-superstring
 
+# Test files
+testcases/*.sdsl
+testcases/*.strings
+
 # Local make variables
 local.mk
 
