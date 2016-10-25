@@ -31,6 +31,7 @@ CPPFLAGS	=	-DMODE_TI \
 				-DHAVE_ATTRIBUTE_CONST \
 				-I../include \
 				-I../../lib/bandit \
+				-I../../lib/range-v3/include \
 				-I../../lib/sdsl/build/include \
 				-I../../lib/sdsl/build/external/libdivsufsort/include \
 				$(LOCAL_CPPFLAGS)
