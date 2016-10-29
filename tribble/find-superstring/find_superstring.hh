@@ -20,7 +20,21 @@
 
 #include <istream>
 #include <sdsl/cst_sct3.hpp>
-#include "string_array.hh"
+
+namespace tribble {
+	class string_array;
+}
+
+// Make some CST operations faster when building with assertions.
+#ifdef NDEBUG
+#	define TRIBBLE_ASSERTIONS_ENABLED	(0)
+#	define TRIBBLE_SA_SAMPLES			(1 << 20)
+#	define TRIBBLE_ISA_SAMPLES			(1 << 20)
+#else
+#	define TRIBBLE_ASSERTIONS_ENABLED	(1)
+#	define TRIBBLE_SA_SAMPLES			(4)
+#	define TRIBBLE_ISA_SAMPLES			(4)
+#endif
 
 #ifndef DEBUGGING_OUTPUT
 #	define DEBUGGING_OUTPUT 0
@@ -33,13 +47,13 @@
 #endif
 
 
-//typedef sdsl::wt_huff <>							wt_type;
-typedef sdsl::wt_blcd <>							wt_type;
-typedef sdsl::csa_wt <wt_type, 1 << 20, 1 << 20>	csa_type;
-typedef sdsl::lcp_support_tree2 <256>				lcp_support_type;
-typedef sdsl::cst_sct3 <csa_type, lcp_support_type>	cst_type;
-typedef csa_type::size_type							size_type;
-typedef csa_type::alphabet_type						alphabet_type;
+//typedef sdsl::wt_huff <>												wt_type;
+typedef sdsl::wt_blcd <>												wt_type;
+typedef sdsl::csa_wt <wt_type, TRIBBLE_SA_SAMPLES, TRIBBLE_ISA_SAMPLES>	csa_type;
+typedef sdsl::lcp_support_tree2 <256>									lcp_support_type;
+typedef sdsl::cst_sct3 <csa_type, lcp_support_type>						cst_type;
+typedef csa_type::size_type												size_type;
+typedef csa_type::alphabet_type											alphabet_type;
 
 
 struct index_type
@@ -48,6 +62,8 @@ struct index_type
 	
 	cst_type cst;
 	sdsl::int_vector <> string_lengths;
+	
+	bool index_contains_debugging_information{TRIBBLE_ASSERTIONS_ENABLED};
 	
 	index_type() = default;
 	
@@ -64,6 +80,12 @@ struct index_type
 										 
 		written_bytes += cst.serialize(out, child, "cst");
 		written_bytes += string_lengths.serialize(out, child, "string_lengths");
+		written_bytes += sdsl::write_member(
+			index_contains_debugging_information,
+			out,
+			child,
+			"index_contains_debugging_information"
+		);
 
 		sdsl::structure_tree::add_size(child, written_bytes);
 		return written_bytes;
@@ -73,6 +95,7 @@ struct index_type
 	{
 		cst.load(in);
 		string_lengths.load(in);
+		sdsl::read_member(index_contains_debugging_information, in);
 	}
 };
 
@@ -108,7 +131,7 @@ extern "C" void create_index(
 	char const sentinel
 );
 extern "C" void check_non_unique_strings(
-	csa_type const &csa,
+	cst_type const &cst,
 	sdsl::int_vector <> const &string_lengths,
 	char const sentinel,
 	/* out */ tribble::string_array &strings_available

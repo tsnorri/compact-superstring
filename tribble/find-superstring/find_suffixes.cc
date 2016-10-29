@@ -19,7 +19,6 @@
 #include <boost/iostreams/stream.hpp>
 #include "find_superstring.hh"
 #include "linked_list.hh"
-#include "node_array.hh"
 #include "string_array.hh"
 #include "timer.hh"
 
@@ -32,7 +31,7 @@ typedef ios::stream <ios::file_descriptor_source> source_stream_type;
 void find_suffixes_with_sorted(
 	cst_type const &cst,
 	char const sentinel,
-	tribble::string_array const &strings,
+	tribble::string_array &strings,
 	find_superstring_match_callback &match_callback
 )
 {
@@ -40,45 +39,16 @@ void find_suffixes_with_sorted(
 	auto const string_count(strings.size());
 	auto const max_length(strings.max_string_length());
 	
-	// Use O(m log n) bits for the nodes.
-	tribble::node_array <cst_type::size_type> sorted_nodes(string_count, cst.size());
-	
+	if (DEBUGGING_OUTPUT)
 	{
-		std::size_t i(0);
 		for (auto const str : strings)
-		{
-			auto const match_start_sa_idx(str.match_start_sa_idx);
-			// Simplify the algorithm by backtracking one letter.
-			auto const next_sa_idx(cst.csa.lf[match_start_sa_idx]);
-			auto const node(cst.select_leaf(1 + next_sa_idx));
-			
-			if (DEBUGGING_OUTPUT)
-			{
-				auto const sa_idx(str.sa_idx);
-				std::cerr << std::endl;
-				std::cerr << "Is unique: " << str.is_unique << " matching suffix length: " << str.branching_suffix_length << std::endl;
-				std::cerr << "Start ("<< sa_idx << "): " << sdsl::extract(cst, cst.select_leaf(1 + sa_idx)) << std::endl;
-				std::cerr << "Node: (" << match_start_sa_idx << "): " << sdsl::extract(cst, node) << std::endl;
-				std::cerr << "----------" << std::endl;
-			}
-			
-			sorted_nodes.set(i, node);
-			++i;
-		}
+			std::cerr << str;
 	}
-	
+
 	// Use O(m log m) bits for a linked list.
 	std::size_t const bits_for_m(1 + sdsl::bits::hi(1 + string_count));
 	tribble::linked_list index_list(1 + string_count, bits_for_m);
-	
-	// Follow the suffix links until the string depth of the parent node
-	// is exactly the same as the number of characters left. In this case,
-	// the first character of the label of the edge towards the leaf should
-	// be the sentinel, in which case there must be at least one suffix
-	// the next character of which is not the sentinel. This is a potential
-	// match. In order to find the highest node, try to ascend in the tree
-	// as long as the string depth of the current node is still greater than
-	// the length of the string in question.
+
 	std::size_t cl(0); // Current discarded prefix length w.r.t. the longest substring.
 	while (index_list.reset() && cl < max_length)
 	{
@@ -88,7 +58,7 @@ void find_suffixes_with_sorted(
 		while (index_list.can_advance())
 		{
 			// Follow one suffix link for each node on one iteration of the outer loop.
-
+			
 			auto const i(string_count - index_list.get_i());
 			assert(i);
 			
@@ -110,65 +80,39 @@ void find_suffixes_with_sorted(
 			
 			// If the branching suffix is shorter than the number of characters available,
 			// the string may be skipped.
-			if (string.branching_suffix_length < remaining_suffix_length)
+			if (string.matching_suffix_length < remaining_suffix_length)
 			{
 				index_list.advance();
 				continue;
 			}
 			
-			auto node(sorted_nodes.get(i - 1));
-			node = cst.sl(node);							// O(rrenclose) time.
-			auto parent(cst.parent(node));					// O(1) time in cst_sct3.
-			auto parent_string_depth(cst.depth(parent));	// O(1) time in cst_sct3 since non-leaf.
+			// Get the corresponding suffix tree node.
+			cst_type::node_type matching_node;
+			string.get_matching_node(matching_node);
 			
-			if (false && DEBUGGING_OUTPUT)
+			// Try to follow the Weiner link.
+			auto const prefix_node(cst.wl(matching_node, sentinel)); // O(t_rank_BWT) time.
+			if (root != prefix_node)
 			{
-				std::cerr << "Node:   '" << sdsl::extract(cst, node) << "'" << std::endl;
-				std::cerr << "Parent: '" << sdsl::extract(cst, parent) << "'" << std::endl;
-			}
-
-			// Ascend if possible.
-			// FIXME: time complexity? Do we get the worst case of implicit suffix links
-			// since the BWT index is allowed to contain substrings (but not duplicates)?
-			while (remaining_suffix_length < parent_string_depth)
-			{
-				node = parent;
-				parent = cst.parent(node);
-				parent_string_depth = cst.depth(parent);
-			}
-
-			if (false && DEBUGGING_OUTPUT)
-			{
-				std::cerr << "Node:   '" << sdsl::extract(cst, node) << "'" << std::endl;
-				std::cerr << "----------" << std::endl;
-			}
-
-			if (remaining_suffix_length == parent_string_depth)
-			{
-				// Potential match, try to follow the Weiner link.
-				auto const match_node(cst.wl(parent, sentinel));	// O(t_rank_BWT) time.
-				if (root != match_node)
+				// A match was found. Handle it.
+				bool const should_remove(match_callback.callback(
+					string.sa_idx,
+					remaining_suffix_length,
+					cst.lb(prefix_node),
+					cst.rb(prefix_node)
+				));
+				
+				if (should_remove)
 				{
-					expensive_assert(cst.edge(node, 1 + parent_string_depth) == sentinel);	// edge takes potentially more time so just verify.
-					
-					// A match was found. Handle it.
-					bool const should_remove(match_callback.callback(
-						string.sa_idx,
-						remaining_suffix_length,
-						cst.lb(match_node),
-						cst.rb(match_node)
-					));
-					
-					if (should_remove)
-					{
-						index_list.advance_and_mark_skipped();
-						continue;
-					}
+					index_list.advance_and_mark_skipped();
+					continue;
 				}
 			}
-			
+
+			matching_node = cst.sl(matching_node); // O(rrenclose + log σ) time (uses csa.psi).
 			index_list.advance();
-			sorted_nodes.set(i - 1, node);
+			string.matching_node = matching_node;
+			strings.set(i - 1, string);
 		}
 		
 		++cl;
@@ -193,6 +137,24 @@ void find_suffixes(
 		
 		index.load(index_stream);
 		
+		if (TRIBBLE_ASSERTIONS_ENABLED && !index.index_contains_debugging_information)
+		{
+			throw std::runtime_error(
+				"find-superstring was built with assertions enabled "
+				"but the given index does not contain "
+				" the necessary data structures."
+			);
+		}
+		else if (!TRIBBLE_ASSERTIONS_ENABLED && index.index_contains_debugging_information)
+		{
+			std::cerr
+			<< std::endl
+			<< "WARNING: find-superstring was built with assertions disabled "
+			<< "but the given index contains additional data structures for "
+			<< "assertions. Memory usage information will not be accurate."
+			<< std::endl;
+		}
+		
 		timer.stop();
 		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
 	}
@@ -211,15 +173,15 @@ void find_suffixes(
 	}
 	
 
-	// Check uniqueness.
-	std::cerr << "Checking non-unique strings…" << std::flush;
+	// Check uniqueness and find match starting positions.
+	std::cerr << "Checking non-unique strings and finding match starting positions…" << std::flush;
 	tribble::string_array strings_available;
 	sdsl::bit_vector is_unique_sa_order;
 	{
-		auto const event(sdsl::memory_monitor::event("Check non-unique strings"));
+		auto const event(sdsl::memory_monitor::event("Check non-unique strings and find match starting positions"));
 		tribble::timer timer;
 		
-		check_non_unique_strings(index.cst.csa, index.string_lengths, sentinel, strings_available);
+		check_non_unique_strings(index.cst, index.string_lengths, sentinel, strings_available);
 		assert(std::is_sorted(
 			strings_available.cbegin(),
 			strings_available.cend(),
@@ -254,16 +216,16 @@ void find_suffixes(
 		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
 	}
 	
-	cb.set_substring_count(strings_available.size());
-	cb.set_is_unique_vector(is_unique_sa_order);
-	cb.set_alphabet(index.cst.csa.alphabet);
-	cb.set_strings_stream(strings_stream);
-
 	std::cerr << "Matching prefixes and suffixes…" << std::flush;
 	{
 		auto const event(sdsl::memory_monitor::event("Match strings"));
 		tribble::timer timer;
 		
+		cb.set_substring_count(strings_available.size());
+		cb.set_is_unique_vector(is_unique_sa_order);
+		cb.set_alphabet(index.cst.csa.alphabet);
+		cb.set_strings_stream(strings_stream);
+
 		find_suffixes_with_sorted(
 			index.cst,
 			sentinel,

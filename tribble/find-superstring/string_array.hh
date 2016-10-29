@@ -30,11 +30,11 @@ namespace tribble {
 	{
 		typedef sdsl::int_vector <0>::size_type size_type;
 		
-		size_type	sa_idx;
-		size_type	match_start_sa_idx;
-		size_type	length;
-		size_type	branching_suffix_length;
-		bool		is_unique;
+		size_type			sa_idx;
+		cst_type::node_type	matching_node{};
+		size_type			length;
+		size_type			matching_suffix_length;
+		bool				is_unique;
 		
 		string_type():
 			string_type(0, 0, false)
@@ -43,9 +43,8 @@ namespace tribble {
 		
 		string_type(size_type const idx, size_type const len, bool const is_unique):
 			sa_idx(idx),
-			match_start_sa_idx(0),
 			length(len),
-			branching_suffix_length(0),
+			matching_suffix_length(0),
 			is_unique(is_unique)
 		{
 		}
@@ -55,16 +54,21 @@ namespace tribble {
 			// Only compare lengths for now.
 			return length < string.length;
 		}
+		
+		inline void get_matching_node(cst_type::node_type &target) const
+		{
+			target = matching_node;
+		}
 	};
 	
 	
-	inline std::ostream &operator<<(std::ostream &os, string_type &s)
+	inline std::ostream &operator<<(std::ostream &os, string_type const &s)
 	{
 		os
 		<< "sa_idx: " << s.sa_idx
-		<< " match_start_sa_idx: " << s.match_start_sa_idx
+		<< " match_start: [" << s.matching_node.i << ", " << s.matching_node.j << "]"
 		<< " length: " << s.length
-		<< " branching_suffix_length: " << s.branching_suffix_length
+		<< " matching_suffix_length: " << s.matching_suffix_length
 		<< " is_unique: " << s.is_unique;
 		return os;
 	}
@@ -80,6 +84,7 @@ namespace tribble { namespace detail {
 	class string_proxy
 	{
 		template <typename> friend struct string_array_iterator_trait;
+		friend std::ostream &operator<<(std::ostream &out, string_proxy const &p);
 		
 	public:
 		typedef std::size_t size_type;
@@ -88,16 +93,6 @@ namespace tribble { namespace detail {
 		string_type m_string{};
 		string_array *m_array;
 		size_type m_idx;
-		
-	public:
-		// FIXME: these do not work.
-#if 0
-		size_type const	&sa_idx{m_string.sa_idx};
-		size_type const	&match_start_sa_idx{m_string.match_start_sa_idx};
-		size_type const	&length{m_string.length};
-		size_type const	&branching_suffix_length{m_string.branching_suffix_length};
-		bool const		&is_unique{m_string.is_unique};
-#endif
 		
 	protected:
 		string_proxy(string_array &array, size_type idx):
@@ -241,20 +236,35 @@ namespace tribble {
 		typedef detail::string_array_iterator_tpl <string_type>				const_iterator;
 
 	protected:
+		// Store the fields column-wise to make use of sdsl::int_vector.
 		sdsl::int_vector <0> m_sa_idxs;
-		sdsl::int_vector <0> m_match_start_sa_idxs;
+		sdsl::int_vector <0> m_match_i;			// LCP interval
+		sdsl::int_vector <0> m_match_j;			// LCP interval
+		sdsl::int_vector <0> m_match_ipos;		// BPS
+		sdsl::int_vector <0> m_match_cipos;		// BPS
+		sdsl::int_vector <0> m_match_jp1pos;	// BPS
 		sdsl::int_vector <0> m_lengths;
-		sdsl::int_vector <0> m_branching_suffix_lengths;
+		sdsl::int_vector <0> m_matching_suffix_lengths;
 		sdsl::bit_vector m_is_unique;
 		
 	public:
 		string_array() = default;
 		
-		string_array(size_type const count, size_type const count_bits, size_type const n_bits, size_type const max_length_bits):
+		string_array(
+			size_type const count,
+			size_type const count_bits,
+			size_type const bits_for_n,
+			size_type const bits_for_2n,
+			size_type const max_length_bits
+		):
 			m_sa_idxs(count, 0, count_bits),
-			m_match_start_sa_idxs(count, 0, n_bits),
+			m_match_i(count, 0, bits_for_n),
+			m_match_j(count, 0, bits_for_n),
+			m_match_ipos(count, 0, bits_for_2n),
+			m_match_cipos(count, 0, bits_for_2n),
+			m_match_jp1pos(count, 0, bits_for_2n),
 			m_lengths(count, 0, max_length_bits),
-			m_branching_suffix_lengths(count, 0, max_length_bits),
+			m_matching_suffix_lengths(count, 0, max_length_bits),
 			m_is_unique(count, 1)
 		{
 		}
@@ -265,19 +275,31 @@ namespace tribble {
 		
 		inline void get(size_type const k, string_type &string) const
 		{
+			cst_type::node_type node(
+				m_match_i[k],
+				m_match_j[k],
+				m_match_ipos[k],
+				m_match_cipos[k],
+				m_match_jp1pos[k]
+			);
+			
 			string.sa_idx					= m_sa_idxs[k];
-			string.match_start_sa_idx		= m_match_start_sa_idxs[k];
+			string.matching_node			= node;
 			string.length					= m_lengths[k];
-			string.branching_suffix_length	= m_branching_suffix_lengths[k];
+			string.matching_suffix_length	= m_matching_suffix_lengths[k];
 			string.is_unique				= m_is_unique[k];
 		}
 		
 		inline void set(size_type const k, string_type &string)
 		{
 			m_sa_idxs[k]					= string.sa_idx;
-			m_match_start_sa_idxs[k]		= string.match_start_sa_idx;
+			m_match_i[k]					= string.matching_node.i;
+			m_match_j[k]					= string.matching_node.j;
+			m_match_ipos[k]					= string.matching_node.ipos;
+			m_match_cipos[k]				= string.matching_node.cipos;
+			m_match_jp1pos[k]				= string.matching_node.jp1pos;
 			m_lengths[k]					= string.length;
-			m_branching_suffix_lengths[k]	= string.branching_suffix_length;
+			m_matching_suffix_lengths[k]	= string.matching_suffix_length;
 			m_is_unique[k]					= string.is_unique;
 		}
 		
@@ -362,6 +384,10 @@ namespace tribble { namespace detail {
 		return m_string < other.m_string;
 	}
 	
+	inline std::ostream &operator<<(std::ostream &os, string_proxy const &p)
+	{
+		return (os << p.m_string);
+	}
 	
 	inline string_type string_array_iterator_trait <string_type>::dereference(array_type &string_array, std::size_t const idx)
 	{
