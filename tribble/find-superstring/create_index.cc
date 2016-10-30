@@ -28,6 +28,51 @@
 namespace ios = boost::iostreams;
 
 
+namespace  tribble { namespace detail {
+
+// FIXME: re-indent.
+
+// Construct the CST.
+// Based on SDSL's construct in construct.hpp.
+template <typename t_index>
+void construct(t_index &idx, std::string const &file, uint8_t const num_bytes)
+{
+	auto event(sdsl::memory_monitor::event("Construct CST"));
+	sdsl::cache_config config;
+	const char* KEY_TEXT(sdsl::key_text_trait <t_index::alphabet_category::WIDTH>::KEY_TEXT);
+	const char* KEY_BWT(sdsl::key_bwt_trait <t_index::alphabet_category::WIDTH>::KEY_BWT);
+	sdsl::csa_tag csa_t;
+	
+	{
+		// Check, if the compressed suffix array is cached
+		typename t_index::csa_type csa;
+		if (!cache_file_exists(std::string(sdsl::conf::KEY_CSA) + "_" + sdsl::util::class_to_hash(csa), config))
+		{
+			sdsl::cache_config csa_config(false, config.dir, config.id, config.file_map);
+			sdsl::construct(csa, file, csa_config, num_bytes, csa_t);
+			auto event(sdsl::memory_monitor::event("Store CSA"));
+			config.file_map = csa_config.file_map;
+			sdsl::store_to_cache(csa, std::string(sdsl::conf::KEY_CSA) + "_" + sdsl::util::class_to_hash(csa), config);
+		}
+		sdsl::register_cache_file(std::string(sdsl::conf::KEY_CSA) + "_" + sdsl::util::class_to_hash(csa), config);
+	}
+	
+	// Skip the LCP.
+	
+	{
+		auto event(sdsl::memory_monitor::event("CST"));
+		t_index tmp(config, true, false);
+		tmp.swap(idx);
+	}
+	
+	if (config.delete_files)
+	{
+		auto event(sdsl::memory_monitor::event("Delete temporary files"));
+		sdsl::util::delete_all_files(config.file_map);
+	}
+}
+
+	
 class create_index_cb
 {
 public:
@@ -126,12 +171,21 @@ public:
 		}
 
 		// Read the sequence from the file.
+		// FIXME: make cst_sct3 not have LCP but only when NDEBUG is defined. (Assertions may make use of e.g. string_depth.)
 		std::cerr << "Creating the CST…" << std::flush;
 		cst_type cst;
 		{
 			tribble::timer timer;
 
-			sdsl::construct(cst, m_strings_fname, 1);
+			// Construct with LCP if assertions have been enabled.
+			if (TRIBBLE_ASSERTIONS_ENABLED)
+				::sdsl::construct(cst, m_strings_fname, 1);
+			else
+			{
+				::tribble::detail::construct(cst, m_strings_fname, 1);
+				if (!cst.lcp.empty())
+					throw std::runtime_error("Expected LCP to be empty.");
+			}
 			
 			timer.stop();
 			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
@@ -179,6 +233,8 @@ public:
 		}
 	}
 };
+	
+}}
 
 
 void create_index(
@@ -193,10 +249,10 @@ void create_index(
 	{
 		// Read the sequence from input and create the index in the callback.
 		tribble::vector_source vs(1, false);
-		tribble::fasta_reader <create_index_cb, 10 * 1024 * 1024> reader;
+		tribble::fasta_reader <tribble::detail::create_index_cb, 10 * 1024 * 1024> reader;
 
 		std::cerr << "Reading the sequences…" << std::flush;
-		create_index_cb cb(index_stream, strings_stream, strings_fname, sentinel);
+		tribble::detail::create_index_cb cb(index_stream, strings_stream, strings_fname, sentinel);
 		reader.read_from_stream(source_stream, vs, cb);
 	}
 	catch (std::exception const &exc)

@@ -90,6 +90,8 @@ void open_file_for_writing(char const *fname, file_ostream &stream)
 int main(int argc, char **argv)
 {
 	std::atexit(handle_atexit);
+	
+	std::cerr << "Assertions have been " << (TRIBBLE_ASSERTIONS_ENABLED ? "enabled" : "disabled") << '.' << std::endl;
 
 	gengetopt_args_info args_info;
 	if (0 != cmdline_parser(argc, argv, &args_info))
@@ -100,7 +102,7 @@ int main(int argc, char **argv)
 	{
 		if (!args_info.sorted_strings_file_given)
 		{
-			std::cerr << "The sorted strings file needs to be specified." << std::endl;
+			std::cerr << "ERROR: The sorted strings file needs to be specified." << std::endl;
 			exit(EXIT_FAILURE);
 		}
 	}
@@ -147,7 +149,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		std::cerr << "Error: No mode given." << std::endl;
+		std::cerr << "ERROR: No mode given." << std::endl;
 		exit(EXIT_FAILURE);
 	}
 	
