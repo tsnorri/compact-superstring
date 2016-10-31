@@ -153,7 +153,7 @@ namespace tribble {
 		char const sentinel,
 		find_superstring_match_callback &cb
 	);
-	void visualize(std::istream &index_stream);
+	void visualize(std::istream &index_stream, std::ostream &memory_chart_stream);
 }
 
 #endif

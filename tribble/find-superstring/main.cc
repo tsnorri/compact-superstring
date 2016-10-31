@@ -159,8 +159,12 @@ int main(int argc, char **argv)
 	else if (args_info.index_visualization_given)
 	{
 		file_istream index_stream;
+		file_ostream memory_chart_stream;
+
 		open_file_for_reading(args_info.index_file_arg, index_stream);
-		tribble::visualize(index_stream);
+		open_file_for_writing(args_info.memory_chart_file_arg, memory_chart_stream);
+
+		tribble::visualize(index_stream, memory_chart_stream);
 	}
 	else
 	{

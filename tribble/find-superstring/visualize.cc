@@ -19,10 +19,10 @@
 
 namespace tribble {
 
-	void visualize(std::istream &stream)
+	void visualize(std::istream &stream, std::ostream &memory_chart_stream)
 	{
-		cst_type cst;
-		cst.load(stream);
-		sdsl::write_structure <sdsl::HTML_FORMAT>(cst, std::cout);
+		index_type index;
+		index.load(stream);
+		sdsl::write_structure <sdsl::HTML_FORMAT>(index, memory_chart_stream);
 	}
 }

@@ -25,7 +25,7 @@ modeoption	"source-file"			f	"Specify the location of the source FASTA file"			s
 modeoption	"find-superstring"		F	"Find the shortest common superstring"													mode = "Find superstring"		required
 
 modeoption	"index-visualization"	I	"Visualize memory usage"																mode = "Index visualization"	required
-modeoption	"memory-chart"			c	"Specify the location of the output HTML file"			string	typestr = "filename"	mode = "Index visualization"	required
+modeoption	"memory-chart-file"		c	"Specify the location of the output HTML file"			string	typestr = "filename"	mode = "Index visualization"	required
 
 text "\n"
 text " Common options:"
@@ -42,5 +42,5 @@ text "Examples:
        find-superstring -F -i example.sdsl -s example.strings
 
     Produce a chart of the memory usage of the index.
-       find-superstring -I -i example.sdsl"
+       find-superstring -I -i example.sdsl -c example-index.html"
 text "\n"
