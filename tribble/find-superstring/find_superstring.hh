@@ -46,8 +46,7 @@
 
 namespace tribble {
 
-	//typedef sdsl::wt_huff <>												wt_type;
-	typedef sdsl::wt_blcd <>												wt_type;
+	typedef sdsl::wt_hutu <>												wt_type;
 	typedef sdsl::csa_wt <wt_type, TRIBBLE_SA_SAMPLES, TRIBBLE_ISA_SAMPLES>	csa_type;
 	typedef sdsl::lcp_support_tree2 <256>									lcp_support_type;
 	typedef sdsl::cst_sct3 <csa_type, lcp_support_type>						cst_type;
