@@ -125,7 +125,7 @@ void Superstring_callback::set_is_unique_vector(sdsl::bit_vector const &vec){
 */
 
 void Superstring_callback::set_alphabet(alphabet_type const &alphabet){
-	this->alphabet = alphabet;
+	this->alphabet = alphabet; // Copy.
 }
 
 
@@ -242,6 +242,16 @@ void Superstring_callback::do_path(int64_t start_string, std::ostream& out, sdsl
 		write_string(string_start_points[right_string], overlap, out, concatenation);
 		current_string_idx = right_string;
 	}
+}
+
+void Superstring_callback::finish_matching(){
+	// Free data structures.
+	{
+		UnionFind dummy;
+		UF = std::move(dummy);
+	}
+	
+	is_unique = nullptr;
 }
 
 void Superstring_callback::build_final_superstring(std::ostream& out){

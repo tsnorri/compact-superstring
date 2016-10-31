@@ -40,6 +40,7 @@ public:
 	void set_alphabet(alphabet_type const &alphabet) override;
 	void set_strings_stream(std::istream &strings_stream) override;
 	void set_is_unique_vector(sdsl::bit_vector const &vec) override;
+	void finish_matching() override;
 	
 	// Prints the final superstring 'out'. Call only after all prefix-suffix overlaps have been considered
 	// and set_alphabet, set_substring_count and set_strings_stream has been called

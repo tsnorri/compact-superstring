@@ -117,6 +117,8 @@ void find_suffixes_with_sorted(
 		
 		++cl;
 	}
+	
+	match_callback.finish_matching();
 }
 
 
@@ -127,116 +129,118 @@ void find_suffixes(
 	find_superstring_match_callback &cb
 )
 {
-	index_type index;
+	{
+		index_type index;
+		tribble::string_array strings_available;
+		sdsl::bit_vector is_unique_sa_order;
 
-	// Load the index.
-	std::cerr << "Loading the index…" << std::flush;
-	{
-		auto const event(sdsl::memory_monitor::event("Load index"));
-		tribble::timer timer;
-		
-		index.load(index_stream);
-		
-		if (TRIBBLE_ASSERTIONS_ENABLED && !index.index_contains_debugging_information)
+		// Load the index.
+		std::cerr << "Loading the index…" << std::flush;
 		{
-			throw std::runtime_error(
-				"find-superstring was built with assertions enabled "
-				"but the given index does not contain "
-				" the necessary data structures."
-			);
-		}
-		else if (!TRIBBLE_ASSERTIONS_ENABLED && index.index_contains_debugging_information)
-		{
-			std::cerr
-			<< std::endl
-			<< "WARNING: find-superstring was built with assertions disabled "
-			<< "but the given index contains additional data structures for "
-			<< "assertions. Memory usage information will not be accurate."
-			<< std::endl;
-		}
-		
-		timer.stop();
-		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
-	}
-	
-	if (DEBUGGING_OUTPUT)
-	{
-		auto const &csa(index.cst.csa);
-		auto const csa_size(csa.size());
-		std::cerr << " i SA ISA PSI LF BWT   T[SA[i]..SA[i]-1]" << std::endl;
-		sdsl::csXprintf(std::cerr, "%2I %2S %3s %3P %2p %3B   %:1T", csa);
-		std::cerr << "First row: '";
-		for (std::size_t i(0); i < csa_size; ++i)
-			std::cerr << csa.F[i];
-		std::cerr << "'" << std::endl;
-		std::cerr << "Text: '" << sdsl::extract(csa, 0, csa_size - 1) << "'" << std::endl;
-	}
-	
-
-	// Check uniqueness and find match starting positions.
-	std::cerr << "Checking non-unique strings and finding match starting positions…" << std::flush;
-	tribble::string_array strings_available;
-	sdsl::bit_vector is_unique_sa_order;
-	{
-		auto const event(sdsl::memory_monitor::event("Check non-unique strings and find match starting positions"));
-		tribble::timer timer;
-		
-		check_non_unique_strings(index.cst, index.string_lengths, sentinel, strings_available);
-		assert(std::is_sorted(
-			strings_available.cbegin(),
-			strings_available.cend(),
-			[](tribble::string_type const &lhs, tribble::string_type const &rhs) {
-				return lhs.sa_idx < rhs.sa_idx;
+			auto const event(sdsl::memory_monitor::event("Load index"));
+			tribble::timer timer;
+			
+			index.load(index_stream);
+			
+			if (TRIBBLE_ASSERTIONS_ENABLED && !index.index_contains_debugging_information)
+			{
+				throw std::runtime_error(
+					"find-superstring was built with assertions enabled "
+					"but the given index does not contain "
+					" the necessary data structures."
+				);
 			}
-		));
-		is_unique_sa_order = strings_available.is_unique_vector(); // Copy.
-		timer.stop();
-		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
+			else if (!TRIBBLE_ASSERTIONS_ENABLED && index.index_contains_debugging_information)
+			{
+				std::cerr
+				<< std::endl
+				<< "WARNING: find-superstring was built with assertions disabled "
+				<< "but the given index contains additional data structures for "
+				<< "assertions. Memory usage information will not be accurate."
+				<< std::endl;
+			}
+			
+			timer.stop();
+			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
+		}
 		
 		if (DEBUGGING_OUTPUT)
 		{
-			for (size_type i(0), count(strings_available.size()); i < count; ++i)
+			auto const &csa(index.cst.csa);
+			auto const csa_size(csa.size());
+			std::cerr << " i SA ISA PSI LF BWT   T[SA[i]..SA[i]-1]" << std::endl;
+			sdsl::csXprintf(std::cerr, "%2I %2S %3s %3P %2p %3B   %:1T", csa);
+			std::cerr << "First row: '";
+			for (std::size_t i(0); i < csa_size; ++i)
+				std::cerr << csa.F[i];
+			std::cerr << "'" << std::endl;
+			std::cerr << "Text: '" << sdsl::extract(csa, 0, csa_size - 1) << "'" << std::endl;
+		}
+		
+
+		// Check uniqueness and find match starting positions.
+		std::cerr << "Checking non-unique strings and finding match starting positions…" << std::flush;
+		{
+			auto const event(sdsl::memory_monitor::event("Check non-unique strings and find match starting positions"));
+			tribble::timer timer;
+			
+			check_non_unique_strings(index.cst, index.string_lengths, sentinel, strings_available);
+			assert(std::is_sorted(
+				strings_available.cbegin(),
+				strings_available.cend(),
+				[](tribble::string_type const &lhs, tribble::string_type const &rhs) {
+					return lhs.sa_idx < rhs.sa_idx;
+				}
+			));
+			is_unique_sa_order = strings_available.is_unique_vector(); // Copy.
+			timer.stop();
+			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
+			
+			if (DEBUGGING_OUTPUT)
 			{
-				tribble::string_type str;
-				strings_available.get(i, str);
-				std::cerr << str << std::endl;
+				for (size_type i(0), count(strings_available.size()); i < count; ++i)
+				{
+					tribble::string_type str;
+					strings_available.get(i, str);
+					std::cerr << str << std::endl;
+				}
 			}
 		}
-	}
-	
-	// Sort.
-	std::cerr << "Sorting by string length…" << std::flush;
-	{
-		auto const event(sdsl::memory_monitor::event("Sort strings"));
-		tribble::timer timer;
 		
-		std::sort(strings_available.begin(), strings_available.end());
+		// Sort.
+		std::cerr << "Sorting by string length…" << std::flush;
+		{
+			auto const event(sdsl::memory_monitor::event("Sort strings"));
+			tribble::timer timer;
+			
+			std::sort(strings_available.begin(), strings_available.end());
+			
+			timer.stop();
+			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
+		}
 		
-		timer.stop();
-		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
-	}
-	
-	std::cerr << "Matching prefixes and suffixes…" << std::flush;
-	{
-		auto const event(sdsl::memory_monitor::event("Match strings"));
-		tribble::timer timer;
-		
-		cb.set_substring_count(strings_available.size());
-		cb.set_is_unique_vector(is_unique_sa_order);
-		cb.set_alphabet(index.cst.csa.alphabet);
-		cb.set_strings_stream(strings_stream);
+		std::cerr << "Matching prefixes and suffixes…" << std::flush;
+		{
+			auto const event(sdsl::memory_monitor::event("Match strings"));
+			tribble::timer timer;
+			
+			cb.set_substring_count(strings_available.size());
+			cb.set_is_unique_vector(is_unique_sa_order);
+			cb.set_alphabet(index.cst.csa.alphabet);
+			cb.set_strings_stream(strings_stream);
 
-		find_suffixes_with_sorted(
-			index.cst,
-			sentinel,
-			strings_available,
-			cb
-		);
-		
-		timer.stop();
-		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
+			find_suffixes_with_sorted(
+				index.cst,
+				sentinel,
+				strings_available,
+				cb
+			);
+			
+			timer.stop();
+			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
+		}
 	}
-	
+
 	std::cerr << "Building the final superstring…" << std::flush;
 	{
 		auto const event(sdsl::memory_monitor::event("Build superstring"));
