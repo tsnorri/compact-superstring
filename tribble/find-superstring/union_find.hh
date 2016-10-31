@@ -27,9 +27,6 @@ class UnionFind {
         size_type n_elements; // Number of elements in structure
         sdsl::int_vector<> sizes; // Subtree sizes
         sdsl::int_vector<> parents; // Parent pointers
-        UnionFind& operator = (const UnionFind&); // Assignment operator not implemented
-        UnionFind (const UnionFind&); // Copy constructor not implemented
-
         sdsl::int_vector<> path; // Reusable space for path compression
 
         static inline std::size_t bits_for_n(size_type const n)
@@ -51,6 +48,11 @@ class UnionFind {
         size_type getSize(size_type id); // Returns the size of the set with identified id
         void initialize(size_type n_elements); // Re-initializes the structure with n elements.
 
+        UnionFind():
+            n_elements(0)
+        {
+        }
+    
         UnionFind(size_type const n):
             UnionFind(n, bits_for_n(n))
         {
