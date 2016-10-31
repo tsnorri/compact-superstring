@@ -135,7 +135,7 @@ namespace tribble { namespace detail {
 	class branch_checker
 	{
 	protected:
-		tribble::string_array	m_strings;
+		string_array			m_strings;
 		range_pair				m_initial_range_pair;
 		sdsl::int_vector <>		m_rank_c_i;
 		sdsl::int_vector <>		m_rank_c_j;
@@ -172,7 +172,7 @@ namespace tribble { namespace detail {
 				// Initialize the result array.
 				{
 					{
-						tribble::string_array tmp(string_count - 1, bits_for_m, bits_for_n, bits_for_2n, bits_for_max_length);
+						string_array tmp(string_count - 1, bits_for_m, bits_for_n, bits_for_2n, bits_for_max_length);
 						m_strings = std::move(tmp);
 					}
 					
@@ -211,7 +211,7 @@ namespace tribble { namespace detail {
 		
 
 		// Get the result.
-		inline void get_strings_available(tribble::string_array /* out */ &dst)
+		inline void get_strings_available(string_array /* out */ &dst)
 		{
 			dst = std::move(m_strings);
 		}
@@ -599,10 +599,10 @@ namespace tribble {
 		cst_type const &cst,
 		sdsl::int_vector <> const &string_lengths,
 		char const sentinel,
-		tribble::string_array /* out */ &strings_available
+		string_array /* out */ &strings_available
 	)
 	{
-		tribble::detail::branch_checker checker(cst, sentinel, string_lengths);
+		detail::branch_checker checker(cst, sentinel, string_lengths);
 		checker.check_non_unique_strings();
 		checker.get_strings_available(strings_available);
 	}

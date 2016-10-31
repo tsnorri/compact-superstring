@@ -92,14 +92,14 @@ namespace tribble { namespace detail {
 	class create_index_cb
 	{
 	public:
-		typedef tribble::vector_source::vector_type vector_type;
+		typedef vector_source::vector_type vector_type;
 		
 	protected:
 		std::ostream &m_index_stream;
 		std::ostream &m_strings_stream;
 		char const *m_strings_fname{};
 		std::vector <vector_type> m_sequences;
-		tribble::timer m_read_timer{};
+		timer m_read_timer{};
 		char m_sentinel{};
 
 	public:
@@ -116,7 +116,7 @@ namespace tribble { namespace detail {
 			std::string const &identifier,
 			std::unique_ptr <vector_type> &seq,
 			std::size_t const seq_length,
-			tribble::vector_source &vs
+			vector_source &vs
 		)
 		{
 			// Copy the sequence to the collection.
@@ -137,7 +137,7 @@ namespace tribble { namespace detail {
 			
 			std::cerr << "Sorting the sequences…" << std::flush;
 			{
-				tribble::timer timer;
+				timer timer;
 				
 				std::sort(m_sequences.begin(), m_sequences.end());
 				
@@ -149,7 +149,7 @@ namespace tribble { namespace detail {
 			auto string_count(m_sequences.size());
 			if (string_count)
 			{
-				tribble::timer timer;
+				timer timer;
 
 				// Output the first sequence.
 				decltype(m_sequences)::value_type const *previous_seq(&m_sequences[0]);
@@ -191,7 +191,7 @@ namespace tribble { namespace detail {
 			std::cerr << "Creating the CST…" << std::flush;
 			cst_type cst;
 			{
-				tribble::timer timer;
+				timer timer;
 
 				// Construct with LCP if assertions have been enabled.
 				if (TRIBBLE_ASSERTIONS_ENABLED)
@@ -211,7 +211,7 @@ namespace tribble { namespace detail {
 			std::cerr << "Creating other data structures…" << std::flush;
 			sdsl::int_vector <> string_lengths;
 			{
-				tribble::timer timer;
+				timer timer;
 
 				decltype(string_lengths)::size_type max_length(0);
 				for (auto const &seq : m_sequences)
@@ -239,7 +239,7 @@ namespace tribble { namespace detail {
 			// Serialize.
 			std::cerr << "Serializing…" << std::flush;
 			{
-				tribble::timer timer;
+				timer timer;
 
 				index_type index(cst, string_lengths);
 				sdsl::serialize(index, m_index_stream);
@@ -266,11 +266,11 @@ namespace tribble {
 		try
 		{
 			// Read the sequence from input and create the index in the callback.
-			tribble::vector_source vs(1, false);
-			tribble::fasta_reader <tribble::detail::create_index_cb, 10 * 1024 * 1024> reader;
+			vector_source vs(1, false);
+			fasta_reader <detail::create_index_cb, 10 * 1024 * 1024> reader;
 
 			std::cerr << "Reading the sequences…" << std::flush;
-			tribble::detail::create_index_cb cb(index_stream, strings_stream, strings_fname, sentinel);
+			detail::create_index_cb cb(index_stream, strings_stream, strings_fname, sentinel);
 			reader.read_from_stream(source_stream, vs, cb);
 		}
 		catch (std::exception const &exc)

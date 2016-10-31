@@ -144,7 +144,7 @@ namespace tribble {
 		cst_type const &cst,
 		sdsl::int_vector <> const &string_lengths,
 		char const sentinel,
-		/* out */ tribble::string_array &strings_available
+		/* out */ string_array &strings_available
 	);
 	void find_suffixes(
 		std::istream &index_stream,

@@ -136,14 +136,14 @@ namespace tribble {
 	{
 		{
 			index_type index;
-			tribble::string_array strings_available;
+			string_array strings_available;
 			sdsl::bit_vector is_unique_sa_order;
 
 			// Load the index.
 			std::cerr << "Loading the index…" << std::flush;
 			{
 				auto const event(sdsl::memory_monitor::event("Load index"));
-				tribble::timer timer;
+				timer timer;
 				
 				index.load(index_stream);
 				
@@ -187,13 +187,13 @@ namespace tribble {
 			std::cerr << "Checking non-unique strings and finding match starting positions…" << std::flush;
 			{
 				auto const event(sdsl::memory_monitor::event("Check non-unique strings and find match starting positions"));
-				tribble::timer timer;
+				timer timer;
 				
 				check_non_unique_strings(index.cst, index.string_lengths, sentinel, strings_available);
 				assert(std::is_sorted(
 					strings_available.cbegin(),
 					strings_available.cend(),
-					[](tribble::string_type const &lhs, tribble::string_type const &rhs) {
+					[](string_type const &lhs, string_type const &rhs) {
 						return lhs.sa_idx < rhs.sa_idx;
 					}
 				));
@@ -205,7 +205,7 @@ namespace tribble {
 				{
 					for (size_type i(0), count(strings_available.size()); i < count; ++i)
 					{
-						tribble::string_type str;
+						string_type str;
 						strings_available.get(i, str);
 						std::cerr << str << std::endl;
 					}
@@ -216,7 +216,7 @@ namespace tribble {
 			std::cerr << "Sorting by string length…" << std::flush;
 			{
 				auto const event(sdsl::memory_monitor::event("Sort strings"));
-				tribble::timer timer;
+				timer timer;
 				
 				std::sort(strings_available.begin(), strings_available.end());
 				
@@ -227,7 +227,7 @@ namespace tribble {
 			std::cerr << "Matching prefixes and suffixes…" << std::flush;
 			{
 				auto const event(sdsl::memory_monitor::event("Match strings"));
-				tribble::timer timer;
+				timer timer;
 				
 				cb.set_substring_count(strings_available.size());
 				cb.set_is_unique_vector(is_unique_sa_order);
@@ -249,7 +249,7 @@ namespace tribble {
 		std::cerr << "Building the final superstring…" << std::flush;
 		{
 			auto const event(sdsl::memory_monitor::event("Build superstring"));
-			tribble::timer timer;
+			timer timer;
 
 			cb.build_final_superstring(std::cout);
 			
