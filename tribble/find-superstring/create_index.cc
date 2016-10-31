@@ -44,7 +44,7 @@ namespace tribble { namespace detail {
 		sdsl::csa_tag csa_t;
 		
 		{
-			// Check, if the compressed suffix array is cached
+			// (1) Check if the compressed suffix array is cached.
 			typename t_index::csa_type csa;
 			if (!cache_file_exists(std::string(sdsl::conf::KEY_CSA) + "_" + sdsl::util::class_to_hash(csa), config))
 			{
@@ -57,7 +57,23 @@ namespace tribble { namespace detail {
 			sdsl::register_cache_file(std::string(sdsl::conf::KEY_CSA) + "_" + sdsl::util::class_to_hash(csa), config);
 		}
 		
-		// Skip the LCP.
+		{
+			// (2) Check if the longest common prefix array is cached.
+			// cst_sct3 uses this for BP construction.
+			auto event(sdsl::memory_monitor::event("LCP"));
+			sdsl::register_cache_file(KEY_TEXT, config);
+			sdsl::register_cache_file(KEY_BWT, config);
+			sdsl::register_cache_file(sdsl::conf::KEY_SA, config);
+			
+			if (!sdsl::cache_file_exists(sdsl::conf::KEY_LCP, config))
+			{
+				if (t_index::alphabet_category::WIDTH==8)
+					sdsl::construct_lcp_semi_extern_PHI(config);
+				else
+					sdsl::construct_lcp_PHI<t_index::alphabet_category::WIDTH>(config);
+			}
+			sdsl::register_cache_file(sdsl::conf::KEY_LCP, config);
+		}
 		
 		{
 			auto event(sdsl::memory_monitor::event("CST"));
