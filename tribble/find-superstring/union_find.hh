@@ -19,44 +19,47 @@
 #ifndef TRIBBLE_UNIONFIND_HH
 #define TRIBBLE_UNIONFIND_HH
 
-class UnionFind {
-    public:
-        typedef std::size_t size_type;
-    
-    private:
-        size_type n_elements; // Number of elements in structure
-        sdsl::int_vector<> sizes; // Subtree sizes
-        sdsl::int_vector<> parents; // Parent pointers
-        sdsl::int_vector<> path; // Reusable space for path compression
+namespace tribble {
 
-        static inline std::size_t bits_for_n(size_type const n)
-        {
-            return 1 + sdsl::bits::hi(n);
-        }
-    
-        UnionFind(size_type const n, size_type const bits_for_n):
-            sizes(n, 0, bits_for_n),
-            parents(n, 0, bits_for_n),
-            path(n, 0, bits_for_n)
-        {
-            initialize(n);
-        }
+	class UnionFind {
+		public:
+			typedef std::size_t size_type;
+		
+		private:
+			size_type n_elements; // Number of elements in structure
+			sdsl::int_vector<> sizes; // Subtree sizes
+			sdsl::int_vector<> parents; // Parent pointers
+			sdsl::int_vector<> path; // Reusable space for path compression
 
-    public:
-        size_type find(size_type id); // Returns the identifier of the set that contains the parameter id
-        void doUnion(size_type id_1, size_type id_2); // Merges the two sets given by the identifiers
-        size_type getSize(size_type id); // Returns the size of the set with identified id
-        void initialize(size_type n_elements); // Re-initializes the structure with n elements.
+			static inline std::size_t bits_for_n(size_type const n)
+			{
+				return 1 + sdsl::bits::hi(n);
+			}
+		
+			UnionFind(size_type const n, size_type const bits_for_n):
+				sizes(n, 0, bits_for_n),
+				parents(n, 0, bits_for_n),
+				path(n, 0, bits_for_n)
+			{
+				initialize(n);
+			}
 
-        UnionFind():
-            n_elements(0)
-        {
-        }
-    
-        UnionFind(size_type const n):
-            UnionFind(n, bits_for_n(n))
-        {
-        }
-};
+		public:
+			size_type find(size_type id); // Returns the identifier of the set that contains the parameter id
+			void doUnion(size_type id_1, size_type id_2); // Merges the two sets given by the identifiers
+			size_type getSize(size_type id); // Returns the size of the set with identified id
+			void initialize(size_type n_elements); // Re-initializes the structure with n elements.
+
+			UnionFind():
+				n_elements(0)
+			{
+			}
+		
+			UnionFind(size_type const n):
+				UnionFind(n, bits_for_n(n))
+			{
+			}
+	};
+}
 
 #endif

@@ -17,52 +17,55 @@
 #include "find_superstring.hh"
 
 
-void find_superstring_match_dummy_callback::set_substring_count(std::size_t set_substring_count)
-{
-	// No-op.
-}
+namespace tribble {
+
+	void find_superstring_match_dummy_callback::set_substring_count(std::size_t set_substring_count)
+	{
+		// No-op.
+	}
 
 
-void find_superstring_match_dummy_callback::set_alphabet(alphabet_type const &alphabet)
-{
-	// No-op.
-}
+	void find_superstring_match_dummy_callback::set_alphabet(alphabet_type const &alphabet)
+	{
+		// No-op.
+	}
 
 
-void find_superstring_match_dummy_callback::set_strings_stream(std::istream &strings_stream)
-{
-	// No-op.
-}
+	void find_superstring_match_dummy_callback::set_strings_stream(std::istream &strings_stream)
+	{
+		// No-op.
+	}
 
 
-void find_superstring_match_dummy_callback::set_is_unique_vector(sdsl::bit_vector const &vec)
-{
-	// No-op.
-}
+	void find_superstring_match_dummy_callback::set_is_unique_vector(sdsl::bit_vector const &vec)
+	{
+		// No-op.
+	}
 
 
-bool find_superstring_match_dummy_callback::callback(
-	std::size_t const read_lex_rank,
-	std::size_t const match_length,
-	std::size_t const match_sa_begin,
-	std::size_t const match_sa_end
-)
-{
-	std::cerr
-	<< "*** Found match for substring " << read_lex_rank << " of length " << match_length
-	<< ": [" << match_sa_begin << ", " << match_sa_end << "]" << std::endl;
-	
-	return false;
-}
+	bool find_superstring_match_dummy_callback::callback(
+		std::size_t const read_lex_rank,
+		std::size_t const match_length,
+		std::size_t const match_sa_begin,
+		std::size_t const match_sa_end
+	)
+	{
+		std::cerr
+		<< "*** Found match for substring " << read_lex_rank << " of length " << match_length
+		<< ": [" << match_sa_begin << ", " << match_sa_end << "]" << std::endl;
+		
+		return false;
+	}
 
 
-void find_superstring_match_dummy_callback::finish_matching()
-{
-	// No-op.
-}
+	void find_superstring_match_dummy_callback::finish_matching()
+	{
+		// No-op.
+	}
 
 
-void find_superstring_match_dummy_callback::build_final_superstring(std::ostream &)
-{
-	// No-op.
+	void find_superstring_match_dummy_callback::build_final_superstring(std::ostream &)
+	{
+		// No-op.
+	}
 }

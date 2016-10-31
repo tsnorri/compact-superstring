@@ -18,55 +18,55 @@
 #include "vector_source.hh"
 
 
-using namespace tribble;
+namespace tribble {
 
-
-void vector_source::resize(std::size_t const size)
-{
-	if (!m_allow_resize)
-		throw std::runtime_error("Trying to allocate more vectors than allowed");
-	
-	// Fill from the beginning so that m_in_use slots in the end remain empty.
-	m_store.resize(size);
-	for (decltype(m_in_use) i(0); i < size - m_in_use; ++i)
-		m_store[i].reset(new vector_type);
-}
-
-
-void vector_source::get_vector(std::unique_ptr <vector_type> &target_ptr)
-{
-	assert(nullptr == target_ptr.get());
-	
-	std::lock_guard <std::mutex> lock_guard(m_mutex);
-	auto total(m_store.size());
-	assert(total);
-	
-	// Check if there are any vectors left.
-	if (m_in_use == total)
+	void vector_source::resize(std::size_t const size)
 	{
-		auto const new_size(2 * total);
-		resize(new_size);
-		assert(m_store[m_in_use - 1].get());
-		total = new_size;
+		if (!m_allow_resize)
+			throw std::runtime_error("Trying to allocate more vectors than allowed");
+		
+		// Fill from the beginning so that m_in_use slots in the end remain empty.
+		m_store.resize(size);
+		for (decltype(m_in_use) i(0); i < size - m_in_use; ++i)
+			m_store[i].reset(new vector_type);
 	}
-	
-	auto &ptr(m_store[total - m_in_use - 1]);
-	target_ptr.swap(ptr);
-	++m_in_use;
-}
 
 
-void vector_source::put_vector(std::unique_ptr <vector_type> &source_ptr)
-{
-	assert(source_ptr.get());
-	
-	std::lock_guard <std::mutex> lock_guard(m_mutex);
-	auto const total(m_store.size());
-	assert(total);
-	assert(m_in_use);
-	
-	auto &ptr(m_store[total - m_in_use]);
-	assert(nullptr == ptr.get());
-	source_ptr.swap(ptr);
-	--m_in_use;
+	void vector_source::get_vector(std::unique_ptr <vector_type> &target_ptr)
+	{
+		assert(nullptr == target_ptr.get());
+		
+		std::lock_guard <std::mutex> lock_guard(m_mutex);
+		auto total(m_store.size());
+		assert(total);
+		
+		// Check if there are any vectors left.
+		if (m_in_use == total)
+		{
+			auto const new_size(2 * total);
+			resize(new_size);
+			assert(m_store[m_in_use - 1].get());
+			total = new_size;
+		}
+		
+		auto &ptr(m_store[total - m_in_use - 1]);
+		target_ptr.swap(ptr);
+		++m_in_use;
+	}
+
+
+	void vector_source::put_vector(std::unique_ptr <vector_type> &source_ptr)
+	{
+		assert(source_ptr.get());
+		
+		std::lock_guard <std::mutex> lock_guard(m_mutex);
+		auto const total(m_store.size());
+		assert(total);
+		assert(m_in_use);
+		
+		auto &ptr(m_store[total - m_in_use]);
+		assert(nullptr == ptr.get());
+		source_ptr.swap(ptr);
+		--m_in_use;
+	}
 }

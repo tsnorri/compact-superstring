@@ -311,6 +311,7 @@ namespace tribble {
 		inline const_iterator cend() const		{ return const_iterator(*this, size()); }
 	};
 }
+
 	
 namespace tribble { namespace detail {
 	

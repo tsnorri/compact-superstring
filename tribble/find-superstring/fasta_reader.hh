@@ -24,6 +24,7 @@
 
 
 namespace tribble { namespace detail {
+	
 	struct fasta_reader_cb {
 		void handle_sequence(
 			std::string const &identifier,

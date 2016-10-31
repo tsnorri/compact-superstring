@@ -28,7 +28,7 @@
 namespace ios = boost::iostreams;
 
 
-namespace  tribble { namespace detail {
+namespace tribble { namespace detail {
 
 // FIXME: re-indent.
 
@@ -236,30 +236,34 @@ namespace  tribble { namespace detail {
 }}
 
 
-void create_index(
-	std::istream &source_stream,
-	std::ostream &index_stream,
-	std::ostream &strings_stream,
-	char const *strings_fname,
-	char const sentinel
-)
-{
-	try
-	{
-		// Read the sequence from input and create the index in the callback.
-		tribble::vector_source vs(1, false);
-		tribble::fasta_reader <tribble::detail::create_index_cb, 10 * 1024 * 1024> reader;
+namespace tribble {
 
-		std::cerr << "Reading the sequences…" << std::flush;
-		tribble::detail::create_index_cb cb(index_stream, strings_stream, strings_fname, sentinel);
-		reader.read_from_stream(source_stream, vs, cb);
-	}
-	catch (std::exception const &exc)
+	void create_index(
+		std::istream &source_stream,
+		std::ostream &index_stream,
+		std::ostream &strings_stream,
+		char const *strings_fname,
+		char const sentinel,
+		error_handler &error_handler
+	)
 	{
-		handle_exception(exc);
-	}
-	catch (...)
-	{
-		handle_error();
+		try
+		{
+			// Read the sequence from input and create the index in the callback.
+			tribble::vector_source vs(1, false);
+			tribble::fasta_reader <tribble::detail::create_index_cb, 10 * 1024 * 1024> reader;
+
+			std::cerr << "Reading the sequences…" << std::flush;
+			tribble::detail::create_index_cb cb(index_stream, strings_stream, strings_fname, sentinel);
+			reader.read_from_stream(source_stream, vs, cb);
+		}
+		catch (std::exception const &exc)
+		{
+			error_handler.handle_exception(exc);
+		}
+		catch (...)
+		{
+			error_handler.handle_unknown_exception();
+		}
 	}
 }

@@ -19,6 +19,9 @@
 #include <iostream>
 
 
+using namespace tribble;
+
+
 void UnionFind::initialize(size_type n_elements){
 	auto const bits(bits_for_n(n_elements));
 	this->n_elements = n_elements;

@@ -17,9 +17,12 @@
 #include "find_superstring.hh"
 
 
-void visualize(std::istream &stream)
-{
-	cst_type cst;
-	cst.load(stream);
-	sdsl::write_structure <sdsl::HTML_FORMAT>(cst, std::cout);
+namespace tribble {
+
+	void visualize(std::istream &stream)
+	{
+		cst_type cst;
+		cst.load(stream);
+		sdsl::write_structure <sdsl::HTML_FORMAT>(cst, std::cout);
+	}
 }

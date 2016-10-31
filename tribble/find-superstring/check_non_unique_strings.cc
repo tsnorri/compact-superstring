@@ -593,14 +593,17 @@ namespace tribble { namespace detail {
 }}
 
 
-void check_non_unique_strings(
-	cst_type const &cst,
-	sdsl::int_vector <> const &string_lengths,
-	char const sentinel,
-	tribble::string_array /* out */ &strings_available
-)
-{
-	tribble::detail::branch_checker checker(cst, sentinel, string_lengths);
-	checker.check_non_unique_strings();
-	checker.get_strings_available(strings_available);
+namespace tribble {
+
+	void check_non_unique_strings(
+		cst_type const &cst,
+		sdsl::int_vector <> const &string_lengths,
+		char const sentinel,
+		tribble::string_array /* out */ &strings_available
+	)
+	{
+		tribble::detail::branch_checker checker(cst, sentinel, string_lengths);
+		checker.check_non_unique_strings();
+		checker.get_strings_available(strings_available);
+	}
 }
