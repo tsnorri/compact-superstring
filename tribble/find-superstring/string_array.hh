@@ -152,7 +152,7 @@ namespace tribble { namespace detail {
 	>
 	{
 		friend class boost::iterator_core_access;
-		friend class string_array;
+		friend class tribble::string_array;
 
 	protected:
 		typedef boost::iterator_facade <
