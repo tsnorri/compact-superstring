@@ -25,12 +25,14 @@ CPP_FLAGS_RELEASE	= -DNDEBUG
 
 CFLAGS		= -c -std=c99 $(OPT_FLAGS) $(WARNING_FLAGS)
 CXXFLAGS	= -c $(OPT_FLAGS) $(LOCAL_CXXFLAGS) $(WARNING_FLAGS)
+# FIXME: dispatch only for Linux
 CPPFLAGS	=	-DMODE_TI \
 				-DHAVE_ATTRIBUTE_HOT \
 				-DHAVE_ATTRIBUTE_PURE \
 				-DHAVE_ATTRIBUTE_CONST \
 				-I../include \
 				-I../../lib/bandit \
+				-I../../lib/libdispatch \
 				-I../../lib/range-v3/include \
 				-I../../lib/sdsl/build/include \
 				-I../../lib/sdsl/build/external/libdivsufsort/include \

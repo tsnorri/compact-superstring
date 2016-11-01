@@ -4,3 +4,6 @@
 [submodule "lib/range-v3"]
 	path = lib/range-v3
 	url = https://github.com/ericniebler/range-v3
+[submodule "lib/libdispatch"]
+	path = lib/libdispatch
+	url = https://github.com/nickhutchinson/libdispatch.git

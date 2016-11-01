@@ -16,7 +16,7 @@ clean:
 clean-dependencies:
 	cd lib/sdsl/build && ./clean.sh
 
-dependencies: lib/sdsl/build/lib/libsdsl.a
+dependencies: lib/sdsl/build/lib/libsdsl.a lib/libdispatch/libdispatch-build/src/libdispatch.a
 
 cloc:
 	$(CLOC) \
@@ -31,3 +31,11 @@ lib/sdsl/build/lib/libsdsl.a:
 	LDFLAGS="$(LOCAL_LDFLAGS) $(OPT_FLAGS)" \
 	cmake ..
 	$(MAKE) -C lib/sdsl/build VERBOSE=1
+
+lib/libdispatch/libdispatch-build/src/libdispatch.a:
+	rm -rf lib/libdispatch/libdispatch-build && \
+	cd lib/libdispatch && \
+	mkdir libdispatch-build && \
+	cd libdispatch-build && \
+	../configure --cc="$(CC)" --c++="$(CXX)" --release
+	$(MAKE) -C lib/libdispatch/libdispatch-build VERBOSE=1
