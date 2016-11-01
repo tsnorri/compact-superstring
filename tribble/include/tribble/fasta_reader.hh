@@ -20,7 +20,7 @@
 #include <iostream>
 #include <iterator>
 #include <sdsl/int_vector.hpp>
-#include "vector_source.hh"
+#include <tribble/vector_source.hh>
 
 
 namespace tribble { namespace detail {

@@ -3,7 +3,7 @@ include ../../common.mk
 
 TARGET			=	find-superstring
 
-LDFLAGS			+=	$(BOOST_IOSTREAMS_LIB)
+LDFLAGS			+=	$(BOOST_IOSTREAMS_LIB) ../src/libtribble.a
 # CPPFLAGS		+=	-DDEBUGGING_OUTPUT
 
 OBJECTS			=	check_non_unique_strings.o \
@@ -13,7 +13,6 @@ OBJECTS			=	check_non_unique_strings.o \
 					find_superstring.o \
 					main.o \
 					superstring_callback.o \
-					vector_source.o \
 					visualize.o \
 					union_find.o
 

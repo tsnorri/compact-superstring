@@ -20,8 +20,8 @@
 #include <fcntl.h>
 #include <iostream>
 #include <sdsl/io.hpp>
+#include <tribble/fasta_reader.hh>
 #include <unistd.h>
-#include "fasta_reader.hh"
 #include "find_superstring.hh"
 #include "timer.hh"
 
