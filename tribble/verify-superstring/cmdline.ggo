@@ -1,0 +1,34 @@
+#  Copyright (C) 2016 Tuukka Norri
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see http://www.gnu.org/licenses/ .
+
+package "tribble"
+version "0.1"
+purpose "Verify the results of find-superstring"
+usage	"verify-superstring [-C | -F] [...]"
+
+defmode		"Create index"			modedesc = "Prepare an index for verifying the superstring."
+defmode		"Verify superstring"	modedesc = "Verify the result."
+
+modeoption	"create-index"			C	"Create the index"																		mode = "Create index"			required
+modeoption	"superstring-file"		s	"Specify the location of the superstring file"	string	typestr = "filename"			mode = "Create index"			required
+
+modeoption	"verify-superstring"	F	"Find the shortest common superstring"													mode = "Verify superstring"		required
+modeoption	"index-file"			i	"Specify the location of the index file"		string	typestr = "filename"			mode = "Verify superstring"		required
+modeoption	"source-file"			f	"Specify the location of the source FASTA file"	string	typestr = "filename"			mode = "Verify superstring"		required
+
+text "Examples:
+    Create an index and output the seriaized data structure.
+       verify-superstring -C -s example.superstring > example.sdsl
+
+    Verify the superstring. The input should be a FASTA file that contains the original reads.
+       verify-superstring -F -i example.sdsl -f example.fa"
+text "\n"
