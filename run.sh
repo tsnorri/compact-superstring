@@ -18,4 +18,4 @@ rm -f testcases/${name}.sorted
 ./tribble/find-superstring/find-superstring -I -i testcases/${name}.sdsl -c testcases/${name}-index_breakdown.html
 
 # Compute superstring
-./tribble/find-superstring/find-superstring --find-superstring -i testcases/${name}.sdsl -s testcases/${name}.sorted -m testcases/${name}-find_superstring.html
+./tribble/find-superstring/find-superstring --find-superstring -i testcases/${name}.sdsl -s testcases/${name}.sorted -m testcases/${name}-find_superstring.html > testcases/${name}.superstring
