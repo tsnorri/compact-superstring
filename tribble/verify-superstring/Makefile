@@ -3,13 +3,14 @@ include ../../common.mk
 
 TARGET			=	verify-superstring
 
-# FIXME: dispatch, pthread, pthread_workqueue and kqueue only for Linux.
 LDFLAGS			+=	$(BOOST_IOSTREAMS_LIB) \
-					../src/libtribble.a \
-					../../lib/libdispatch/libdispatch-build/src/libdispatch.a \
+					../src/libtribble.a
+ifeq ($(shell uname -s),Linux)
+	LDFLAGS		+=  ../../lib/libdispatch/libdispatch-build/src/libdispatch.a \
 					-lkqueue \
 					-lpthread \
 					-lpthread_workqueue
+endif
 
 # CPPFLAGS		+=	-DDEBUGGING_OUTPUT
 

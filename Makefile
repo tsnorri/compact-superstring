@@ -3,6 +3,12 @@ include common.mk
 
 PROJECT_DIR = tribble
 
+DEPENDENCIES = lib/sdsl/build/lib/libsdsl.a
+ifeq ($(shell uname -s),Linux)
+	DEPENDENCIES    +=  lib/libdispatch/libdispatch-build/src/libdispatch.a
+endif
+
+
 .PHONY: all clean-all clean clean-dependencies dependencies cloc
 
 all: dependencies
@@ -16,7 +22,7 @@ clean:
 clean-dependencies:
 	cd lib/sdsl/build && ./clean.sh
 
-dependencies: lib/sdsl/build/lib/libsdsl.a lib/libdispatch/libdispatch-build/src/libdispatch.a
+dependencies: $(DEPENDENCIES)
 
 cloc:
 	$(CLOC) \
