@@ -30,7 +30,7 @@ namespace {
 		tribble::cst_type											m_cst{};
 		dispatch_queue_t											m_loading_queue{};
 		dispatch_queue_t											m_verifying_queue{};
-		tribble::fasta_reader <verify_context, 10 * 1024 * 1024>	m_fasta_reader;
+		tribble::fasta_reader <verify_context, 1024>				m_fasta_reader;
 		tribble::vector_source										m_vs;
 		std::mutex													m_cerr_mutex{};
 		bool														m_did_succeed{true};
