@@ -51,8 +51,8 @@ namespace tribble {
 		
 		inline bool operator<(string_type const &string) const
 		{
-			// Only compare lengths for now.
-			return length < string.length;
+			// Only compare matching suffix lengths for now.
+			return matching_suffix_length < string.matching_suffix_length;
 		}
 		
 		inline void get_matching_node(cst_type::node_type &target) const
@@ -271,6 +271,7 @@ namespace tribble {
 		
 		inline size_type size() const { return m_sa_idxs.size(); }
 		inline size_type max_string_length() const { return m_lengths[size() - 1]; }
+		inline size_type max_matching_suffix_length() const { return m_matching_suffix_lengths[size() - 1]; }
 		inline sdsl::bit_vector const &is_unique_vector() const { return m_is_unique; }
 		
 		inline void get(size_type const k, string_type &string) const

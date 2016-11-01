@@ -39,7 +39,7 @@ namespace {
 	{
 		auto const root(cst.root());
 		auto const string_count(strings.size());
-		auto const max_length(strings.max_string_length());
+		auto const max_length(strings.max_matching_suffix_length());
 		
 		if (DEBUGGING_OUTPUT)
 		{
@@ -77,7 +77,7 @@ namespace {
 				
 				// If the remaining strings are shorter than the remaining suffix
 				// length, they will not match anything.
-				if (string.length < remaining_suffix_length)
+				if (string.matching_suffix_length < remaining_suffix_length)
 					break;
 				
 				// If the branching suffix is shorter than the number of characters available,
