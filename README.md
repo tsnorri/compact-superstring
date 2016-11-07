@@ -1,6 +1,6 @@
 # compact-superstring
 
-Use a greedy approximation algorithm to find the shortest common superstring of given strings.
+Use a greedy approximation algorithm to find the shortest common superstring of given strings in succinct space.
 
 ## Build/Runtime Requirements
 
