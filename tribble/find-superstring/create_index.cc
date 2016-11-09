@@ -187,7 +187,6 @@ namespace tribble { namespace detail {
 			}
 
 			// Read the sequence from the file.
-			// FIXME: make cst_sct3 not have LCP but only when NDEBUG is defined. (Assertions may make use of e.g. string_depth.)
 			std::cerr << "Creating the CST…" << std::flush;
 			cst_type cst;
 			{
