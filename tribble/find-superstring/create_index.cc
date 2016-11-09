@@ -102,6 +102,13 @@ namespace tribble { namespace detail {
 		timer m_read_timer{};
 		char m_sentinel{};
 
+	protected:
+		void handle_sentinel_in_text()
+		{
+			throw std::runtime_error("The text contains the sentinel character.");
+		}
+
+		
 	public:
 		create_index_cb(std::ostream &index_stream, std::ostream &strings_stream, char const *strings_fname, char const sentinel):
 			m_index_stream(index_stream),
@@ -130,6 +137,8 @@ namespace tribble { namespace detail {
 
 		void finish()
 		{
+			assert(m_sentinel);
+			
 			{
 				m_read_timer.stop();
 				std::cerr << " finished in " << m_read_timer.ms_elapsed() << " ms." << std::endl;
@@ -154,12 +163,23 @@ namespace tribble { namespace detail {
 				// Output the first sequence.
 				decltype(m_sequences)::value_type const *previous_seq(&m_sequences[0]);
 				m_strings_stream << m_sentinel;
-				std::copy(previous_seq->begin(), previous_seq->end(), std::ostream_iterator <char>(m_strings_stream));
+				
+				{
+					auto const begin(previous_seq->begin());
+					auto const end(previous_seq->end());
+					
+					if (end != std::find(begin, end, m_sentinel))
+						handle_sentinel_in_text();
+					
+					std::copy(begin, end, std::ostream_iterator <char>(m_strings_stream));
+				}
 
 				// Output the remaining unique sequences.
 				for (auto it(1 + m_sequences.begin()), end(m_sequences.end()); it != end; ++it)
 				{
 					auto &seq(*it); // Returns a reference.
+					
+					// Check uniqueness.
 					if (seq == *previous_seq)
 					{
 						--string_count;
@@ -171,9 +191,16 @@ namespace tribble { namespace detail {
 					}
 					else
 					{
+						auto const begin(seq.begin());
+						auto const end(seq.end());
+						
+						// Check for the sentinel.
+						if (end != std::find(begin, end, m_sentinel))
+							handle_sentinel_in_text();
+						
 						// Write the sequence to the specified file.
 						m_strings_stream << m_sentinel;
-						std::copy(seq.begin(), seq.end(), std::ostream_iterator <char>(m_strings_stream));
+						std::copy(begin, end, std::ostream_iterator <char>(m_strings_stream));
 						previous_seq = &seq;
 					}
 				}
@@ -200,6 +227,21 @@ namespace tribble { namespace detail {
 					::tribble::detail::construct(cst, m_strings_fname, 1);
 					if (!cst.lcp.empty())
 						throw std::runtime_error("Expected LCP to be empty.");
+				}
+				
+				// Check the sentinel.
+				auto const comp_val(cst.csa.char2comp[m_sentinel]);
+				if (1 != comp_val)
+				{
+					std::stringstream output;
+					output
+					<< "The text contains the character '"
+					<< std::hex << cst.csa.comp2char[1]
+					<< "' the lexicographic value is less than that of the sentinel, '"
+					<< std::hex << static_cast <int>(m_sentinel)
+					<< "'.";
+					
+					throw std::runtime_error(output.str());
 				}
 				
 				timer.stop();
