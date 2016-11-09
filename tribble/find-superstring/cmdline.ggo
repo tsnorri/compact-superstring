@@ -19,19 +19,20 @@ defmode		"Create index"			modedesc = "Prepare an index for finding the superstri
 defmode		"Find superstring"		modedesc = "Find the shortest common superstring."
 defmode		"Index visualization"	modedesc = "Output space breakdown of the index data structure in HTML format."
 
-modeoption	"create-index"			C	"Create the index"																		mode = "Create index"			required
-modeoption	"source-file"			f	"Specify the location of the source FASTA file"			string	typestr = "filename"	mode = "Create index"			required
+modeoption	"create-index"			C	"Create the index"																					mode = "Create index"			required
+modeoption	"source-file"			f	"Specify the location of the source FASTA file"						string	typestr = "filename"	mode = "Create index"			required
+modeoption	"sentinel-character"	-	"Specify the number of the string separator character to be used"	short	typestr = "number"		mode = "Create index"			optional
 
-modeoption	"find-superstring"		F	"Find the shortest common superstring"													mode = "Find superstring"		required
+modeoption	"find-superstring"		F	"Find the shortest common superstring"																mode = "Find superstring"		required
 
-modeoption	"index-visualization"	I	"Visualize memory usage"																mode = "Index visualization"	required
-modeoption	"memory-chart-file"		c	"Specify the location of the output HTML file"			string	typestr = "filename"	mode = "Index visualization"	required
+modeoption	"index-visualization"	I	"Visualize memory usage"																			mode = "Index visualization"	required
+modeoption	"memory-chart-file"		c	"Specify the location of the output HTML file"						string	typestr = "filename"	mode = "Index visualization"	required
 
 text "\n"
 text " Common options:"
-option		"index-file"			i	"Specify the location of the index file"				string	typestr = "filename"									required
-option		"sorted-strings-file"	s	"Specify the location of the text index file"			string	typestr = "filename"									optional
-option		"output-memory-usage"	m	"Output memory usage in HTML format to the given file"	string	typestr = "filename"									optional
+option		"index-file"			i	"Specify the location of the index file"							string	typestr = "filename"									required
+option		"sorted-strings-file"	s	"Specify the location of the text index file"						string	typestr = "filename"									optional
+option		"output-memory-usage"	m	"Output memory usage in HTML format to the given file"				string	typestr = "filename"									optional
 
 text "Examples:
     Create an index and output the serialized data structure and the processed

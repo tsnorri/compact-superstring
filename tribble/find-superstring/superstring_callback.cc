@@ -85,6 +85,10 @@ void Superstring_callback::set_strings_stream(std::istream &stream){
 	strings_stream = &stream;
 }
 
+void Superstring_callback::set_sentinel_character(char const sentinel){
+	sentinel_character = sentinel;
+}
+
 void Superstring_callback::set_is_unique_vector(sdsl::bit_vector const &vec){
 	
 	this->is_unique = &vec;
@@ -218,7 +222,7 @@ std::size_t Superstring_callback::get_next_right_available(std::size_t index){
 void Superstring_callback::write_string(int64_t string_start, int64_t skip, std::ostream& out, sdsl::int_vector<0>& concatenation){
 	int64_t k = string_start;
 	char c = alphabet.comp2char[concatenation[k]];
-	while(c != '#'){
+	while(c != sentinel_character){
 		if(skip > 0) skip--;
 		else out << c;
 		
@@ -282,7 +286,7 @@ void Superstring_callback::build_final_superstring(std::ostream& out){
 		concatenation[concatenation_index] = alphabet.char2comp[c];
 		
 		// Record the starting points of strings
-		if(n_strings_read < n_strings && c == '#'){
+		if(n_strings_read < n_strings && c == sentinel_character){
 			string_start_points[n_strings_read] = concatenation_index+1;
 			n_strings_read++;
 		}

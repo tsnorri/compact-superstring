@@ -42,6 +42,12 @@ namespace tribble {
 		// No-op.
 	}
 
+	
+	void find_superstring_match_dummy_callback::set_sentinel_character(char const sentinel)
+	{
+		// No-op.
+	}
+
 
 	bool find_superstring_match_dummy_callback::callback(
 		std::size_t const read_lex_rank,

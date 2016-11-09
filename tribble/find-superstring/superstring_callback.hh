@@ -41,6 +41,7 @@ namespace tribble {
 		void set_alphabet(alphabet_type const &alphabet) override;
 		void set_strings_stream(std::istream &strings_stream) override;
 		void set_is_unique_vector(sdsl::bit_vector const &vec) override;
+		void set_sentinel_character(char const sentinel) override;
 		void finish_matching() override;
 		
 		// Prints the final superstring 'out'. Call only after all prefix-suffix overlaps have been considered
@@ -85,6 +86,7 @@ namespace tribble {
 		alphabet_type alphabet;
 		std::istream* strings_stream; // Raw pointer bad I know, I know
 		const sdsl::bit_vector *is_unique;
+		char sentinel_character;
 	};
 }
 

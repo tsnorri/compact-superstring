@@ -103,7 +103,7 @@ namespace tribble { namespace detail {
 		char m_sentinel{};
 
 	public:
-		create_index_cb(std::ostream &index_stream, std::ostream &strings_stream, char const *strings_fname, char sentinel = '#'):
+		create_index_cb(std::ostream &index_stream, std::ostream &strings_stream, char const *strings_fname, char const sentinel):
 			m_index_stream(index_stream),
 			m_strings_stream(strings_stream),
 			m_strings_fname(strings_fname),
@@ -241,7 +241,7 @@ namespace tribble { namespace detail {
 			{
 				timer timer;
 
-				index_type index(cst, string_lengths);
+				index_type index(cst, string_lengths, m_sentinel);
 				sdsl::serialize(index, m_index_stream);
 				
 				timer.stop();

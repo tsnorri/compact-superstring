@@ -43,6 +43,8 @@
 #	define expensive_assert(x) ((void)0)
 #endif
 
+#define INDEX_VERSION 1
+
 
 namespace tribble {
 
@@ -62,14 +64,15 @@ namespace tribble {
 		
 		cst_type cst;
 		sdsl::int_vector <> string_lengths;
-		
+		char sentinel{1};
 		bool index_contains_debugging_information{TRIBBLE_ASSERTIONS_ENABLED};
 		
 		index_type() = default;
 		
-		index_type(cst_type &cst_p, sdsl::int_vector <> string_lengths_p):
+		index_type(cst_type &cst_p, sdsl::int_vector <> string_lengths_p, char const sentinel_p):
 			cst(std::move(cst_p)),
-			string_lengths(std::move(string_lengths_p))
+			string_lengths(std::move(string_lengths_p)),
+			sentinel(sentinel_p)
 		{
 		}
 		
@@ -77,9 +80,15 @@ namespace tribble {
 		{
 			sdsl::structure_tree_node *child(sdsl::structure_tree::add_child(v, name, "tribble::index_type"));
 			size_type written_bytes(0);
-											 
+			
+			{
+				uint32_t const index_version(INDEX_VERSION);
+				written_bytes += sdsl::write_member(index_version, out, child, "index_version");
+			}
+			
 			written_bytes += cst.serialize(out, child, "cst");
 			written_bytes += string_lengths.serialize(out, child, "string_lengths");
+			written_bytes += sdsl::write_member(sentinel, out, child, "sentinel");
 			written_bytes += sdsl::write_member(
 				index_contains_debugging_information,
 				out,
@@ -93,8 +102,20 @@ namespace tribble {
 		
 		void load(std::istream &in)
 		{
+			{
+				uint32_t index_version(0);
+				sdsl::read_member(index_version, in);
+				if (INDEX_VERSION != index_version)
+				{
+					std::stringstream output;
+					output << "Given index version was " << index_version << ", expected " << INDEX_VERSION << ".";
+					throw std::runtime_error(output.str());
+				}
+			}
+			
 			cst.load(in);
 			string_lengths.load(in);
+			sdsl::read_member(sentinel, in);
 			sdsl::read_member(index_contains_debugging_information, in);
 		}
 	};
@@ -114,6 +135,7 @@ namespace tribble {
 		virtual void set_alphabet(alphabet_type const &alphabet) = 0;
 		virtual void set_strings_stream(std::istream &strings_stream) = 0;
 		virtual void set_is_unique_vector(sdsl::bit_vector const &vec) = 0;
+		virtual void set_sentinel_character(char const sentinel) = 0;
 		virtual bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) = 0;
 		virtual void finish_matching() = 0;
 		virtual void build_final_superstring(std::ostream &) = 0;
@@ -126,6 +148,7 @@ namespace tribble {
 		void set_alphabet(alphabet_type const &alphabet) override;
 		void set_strings_stream(std::istream &strings_stream) override;
 		void set_is_unique_vector(sdsl::bit_vector const &vec) override;
+		void set_sentinel_character(char const sentinel) override;
 		bool callback(std::size_t read_lex_rank, std::size_t match_length, std::size_t match_sa_begin, std::size_t match_sa_end) override;
 		void finish_matching() override;
 		void build_final_superstring(std::ostream &) override;
@@ -149,7 +172,6 @@ namespace tribble {
 	void find_suffixes(
 		std::istream &index_stream,
 		std::istream &strings_stream,
-		char const sentinel,
 		find_superstring_match_callback &cb
 	);
 	void visualize(std::istream &index_stream, std::ostream &memory_chart_stream);

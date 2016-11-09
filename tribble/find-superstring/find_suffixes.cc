@@ -130,7 +130,6 @@ namespace tribble {
 	void find_suffixes(
 		std::istream &index_stream,
 		std::istream &strings_stream,
-		char const sentinel,
 		find_superstring_match_callback &cb
 	)
 	{
@@ -189,7 +188,7 @@ namespace tribble {
 				auto const event(sdsl::memory_monitor::event("Check non-unique strings and find match starting positions"));
 				timer timer;
 				
-				check_non_unique_strings(index.cst, index.string_lengths, sentinel, strings_available);
+				check_non_unique_strings(index.cst, index.string_lengths, index.sentinel, strings_available);
 				assert(std::is_sorted(
 					strings_available.cbegin(),
 					strings_available.cend(),
@@ -233,10 +232,11 @@ namespace tribble {
 				cb.set_is_unique_vector(is_unique_sa_order);
 				cb.set_alphabet(index.cst.csa.alphabet);
 				cb.set_strings_stream(strings_stream);
+				cb.set_sentinel_character(index.sentinel);
 
 				find_suffixes_with_sorted(
 					index.cst,
-					sentinel,
+					index.sentinel,
 					strings_available,
 					cb
 				);
