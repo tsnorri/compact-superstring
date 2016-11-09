@@ -42,7 +42,7 @@ bool Superstring_callback::try_merge(std::size_t left_string, std::size_t right_
 		
 		if (DEBUGGING_OUTPUT)
 		{
-			std::cout << "Merged " << left_string << " " << right_string << std::endl;
+			std::cerr << "Merged " << left_string << " " << right_string << std::endl;
 		}
 		return true;
 	}
@@ -277,6 +277,7 @@ void Superstring_callback::build_final_superstring(std::ostream& out){
 	int64_t n_strings_read = 0; // Strings read so far
 	
 	char c;
+	*strings_stream >> std::noskipws;
 	while(*strings_stream >> c){
 
 		// If out of space, double the length of the strings array
