@@ -8,8 +8,11 @@ if [ -z "$name" ];
 fi
 
 # Clean up
-rm -f testcases/${name}.sdsl
-rm -f testcases/${name}.sorted
+rm -f "testcases/${name}.sdsl"
+rm -f "testcases/${name}.sorted"
+rm -f "testcases/${name}-index_breakdown.html"
+rm -f "testcases/${name}-create_index.html"
+rm -f "testcases/${name}-find_superstring.html"
 
 # Build index
 ./tribble/find-superstring/find-superstring -C -f testcases/${name}.fna -i testcases/${name}.sdsl -s testcases/${name}.sorted -m testcases/${name}-create_index.html
