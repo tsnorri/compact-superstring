@@ -23,13 +23,19 @@ On Linux also the following libraries are required to build and run a tool to ve
 
 ### Short version
 
-1. `touch local.mk`
-2. `make -j4 BUILD_STYLE=release`
+1. `git clone https://github.com/tsnorri/compact-superstring.git`
+2. `cd compact-superstring`
+3. `git submodule update --init`
+4. `touch local.mk`
+5. `make -j4 BUILD_STYLE=release`
 
 ### Long version
 
-1. Edit `local.mk` in the repository root to override build variables. Useful variables include `CC` and `CXX` for C and C++ compilers respectively, `LOCAL_CXXFLAGS` and `LOCAL_LDFLAGS` for C++ and linker flags respectively and `BOOST_IOSTREAMS_LIB` for the command line options to link Boost's Iostreams library. See `common.mk` for additional variables.
-2. Run make with a suitable numer of parallel jobs and the variable `BUILD_STYLE` defined, e.g. `make -j4 BUILD_STYLE=release`
+1. Clone the repository with `git clone https://github.com/tsnorri/compact-superstring.git`.
+2. Change the working directory with `cd compact-superstring`.
+3. Run `git submodule update --init`. This clones the missing submodules and updates their working tree.
+5. Edit `local.mk` in the repository root to override build variables. Useful variables include `CC` and `CXX` for C and C++ compilers respectively, `LOCAL_CXXFLAGS` and `LOCAL_LDFLAGS` for C++ and linker flags respectively and `BOOST_IOSTREAMS_LIB` for the command line options to link Boost's Iostreams library. See `common.mk` for additional variables.
+5. Run make with a suitable numer of parallel jobs and the variable `BUILD_STYLE` defined, e.g. `make -j4 BUILD_STYLE=release`
 
 Useful make targets include:
 
