@@ -223,6 +223,7 @@ void Superstring_callback::write_string(int64_t string_start, int64_t skip, std:
 	int64_t k = string_start;
 	char c = alphabet.comp2char[concatenation[k]];
 	while(c != sentinel_character){
+		assert(c);
 		if(skip > 0) skip--;
 		else out << c;
 		
@@ -276,7 +277,7 @@ void Superstring_callback::build_final_superstring(std::ostream& out){
 	int64_t concatenation_index = 0; // For appending characters to the concatenation
 	int64_t n_strings_read = 0; // Strings read so far
 	
-	char c;
+	unsigned char c;
 	*strings_stream >> std::noskipws;
 	while(*strings_stream >> c){
 
@@ -284,7 +285,8 @@ void Superstring_callback::build_final_superstring(std::ostream& out){
 		if(concatenation_index == concatenation.size()){
 			concatenation.resize(concatenation.size() * 2);
 		}
-		concatenation[concatenation_index] = alphabet.char2comp[c];
+		auto const comp = alphabet.char2comp[c];
+		concatenation[concatenation_index] = comp;
 		
 		// Record the starting points of strings
 		if(n_strings_read < n_strings && c == sentinel_character){
