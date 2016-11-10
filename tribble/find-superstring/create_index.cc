@@ -21,6 +21,7 @@
 #include <iostream>
 #include <sdsl/io.hpp>
 #include <tribble/fasta_reader.hh>
+#include <tribble/line_reader.hh>
 #include <unistd.h>
 #include "find_superstring.hh"
 #include "timer.hh"
@@ -107,20 +108,8 @@ namespace tribble { namespace detail {
 		{
 			throw std::runtime_error("The text contains the sentinel character.");
 		}
-
 		
-	public:
-		create_index_cb(std::ostream &index_stream, std::ostream &strings_stream, char const *strings_fname, char const sentinel):
-			m_index_stream(index_stream),
-			m_strings_stream(strings_stream),
-			m_strings_fname(strings_fname),
-			m_sentinel(sentinel)
-		{
-			assert(m_strings_fname);
-		}
-
-		void handle_sequence(
-			std::string const &identifier,
+		void copy_seq(
 			std::unique_ptr <vector_type> &seq,
 			std::size_t const seq_length,
 			vector_source &vs
@@ -134,6 +123,38 @@ namespace tribble { namespace detail {
 			vs.put_vector(seq);
 		}
 
+		
+	public:
+		create_index_cb(std::ostream &index_stream, std::ostream &strings_stream, char const *strings_fname, char const sentinel):
+			m_index_stream(index_stream),
+			m_strings_stream(strings_stream),
+			m_strings_fname(strings_fname),
+			m_sentinel(sentinel)
+		{
+			assert(m_strings_fname);
+		}
+		
+		// For FASTA.
+		void handle_sequence(
+			std::string const &identifier,
+			std::unique_ptr <vector_type> &seq,
+			std::size_t const seq_length,
+			vector_source &vs
+		)
+		{
+			copy_seq(seq, seq_length, vs);
+		}
+		
+		// For line-oriented text.
+		void handle_sequence(
+			uint32_t const lineno,
+			std::unique_ptr <vector_type> &seq,
+			std::size_t const seq_length,
+			vector_source &vs
+		)
+		{
+			copy_seq(seq, seq_length, vs);
+		}
 
 		void finish()
 		{
@@ -303,6 +324,7 @@ namespace tribble {
 		std::ostream &index_stream,
 		std::ostream &strings_stream,
 		char const *strings_fname,
+		enum_source_format const source_format,
 		char const sentinel,
 		error_handler &error_handler
 	)
@@ -310,12 +332,27 @@ namespace tribble {
 		try
 		{
 			// Read the sequence from input and create the index in the callback.
-			vector_source vs(1, false);
-			fasta_reader <detail::create_index_cb, 10 * 1024 * 1024> reader;
-
 			std::cerr << "Reading the sequences…" << std::flush;
+			vector_source vs(1, false);
 			detail::create_index_cb cb(index_stream, strings_stream, strings_fname, sentinel);
-			reader.read_from_stream(source_stream, vs, cb);
+
+			if (source_format_arg_FASTA == source_format)
+			{
+				fasta_reader <detail::create_index_cb> reader;
+				reader.read_from_stream(source_stream, vs, cb);
+			}
+			else if (source_format_arg_text == source_format)
+			{
+				line_reader <detail::create_index_cb> reader;
+				reader.read_from_stream(source_stream, vs, cb);
+			}
+			else
+			{
+				std::stringstream output;
+				output << "Unexpected source file format '" << source_format << "'.";
+
+				throw std::runtime_error(output.str());
+			}
 		}
 		catch (std::exception const &exc)
 		{

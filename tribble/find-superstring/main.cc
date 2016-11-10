@@ -105,16 +105,24 @@ int main(int argc, char **argv)
 			sentinel_character = args_info.sentinel_character_arg;
 		}
 		
-		tribble::file_istream fasta_stream;
+		tribble::file_istream source_stream;
 		tribble::file_ostream index_stream;
 		tribble::file_ostream strings_stream;
 		
-		tribble::open_file_for_reading(args_info.source_file_arg, fasta_stream);
+		tribble::open_file_for_reading(args_info.source_file_arg, source_stream);
 		tribble::open_file_for_writing(args_info.index_file_arg, index_stream);
 		tribble::open_file_for_writing(args_info.sorted_strings_file_arg, strings_stream);
 		
 		error_handler eh;
-		tribble::create_index(fasta_stream, index_stream, strings_stream, args_info.sorted_strings_file_arg, sentinel_character, eh);
+		tribble::create_index(
+			source_stream,
+			index_stream,
+			strings_stream,
+			args_info.sorted_strings_file_arg,
+			args_info.source_format_arg,
+			sentinel_character,
+			eh
+		);
 	}
 	else if (args_info.find_superstring_given)
 	{

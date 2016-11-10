@@ -20,6 +20,7 @@
 
 #include <istream>
 #include <sdsl/cst_sct3.hpp>
+#include "cmdline.h" // For enum_source_format
 
 
 // Make some CST operations faster when building with assertions.
@@ -160,6 +161,7 @@ namespace tribble {
 		std::ostream &index_stream,
 		std::ostream &strings_stream,
 		char const *strings_fname,
+		enum_source_format source_format,
 		char const sentinel,
 		error_handler &error_handler
 	);
