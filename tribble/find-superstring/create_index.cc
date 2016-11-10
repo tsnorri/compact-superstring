@@ -141,7 +141,7 @@ namespace tribble { namespace detail {
 			
 			{
 				m_read_timer.stop();
-				std::cerr << " finished in " << m_read_timer.ms_elapsed() << " ms." << std::endl;
+				std::cerr << " finished in " << m_read_timer.ms_elapsed() << " ms, read " << m_sequences.size() << " sequences." << std::endl;
 			}
 			
 			std::cerr << "Sorting the sequences…" << std::flush;
@@ -175,6 +175,7 @@ namespace tribble { namespace detail {
 				}
 
 				// Output the remaining unique sequences.
+				std::size_t unique_count(1);
 				for (auto it(1 + m_sequences.begin()), end(m_sequences.end()); it != end; ++it)
 				{
 					auto &seq(*it); // Returns a reference.
@@ -202,6 +203,8 @@ namespace tribble { namespace detail {
 						m_strings_stream << m_sentinel;
 						std::copy(begin, end, std::ostream_iterator <char>(m_strings_stream));
 						previous_seq = &seq;
+						
+						++unique_count;
 					}
 				}
 				
@@ -210,7 +213,7 @@ namespace tribble { namespace detail {
 				m_strings_stream.flush();
 				
 				timer.stop();
-				std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
+				std::cerr << " finished in " << timer.ms_elapsed() << " ms, found " << unique_count << " unique strings." << std::endl;
 			}
 
 			// Read the sequence from the file.
