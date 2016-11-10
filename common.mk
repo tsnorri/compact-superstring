@@ -63,7 +63,7 @@ endif
 %.o: %.c
 	$(CC) $(CFLAGS) $(CPPFLAGS) -o $@ $<
 
-%.h %.c: %.ggo
+%.c: %.ggo
 	$(GENGETOPT) --input="$<"
 
 %.cc: %.rl
