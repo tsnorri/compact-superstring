@@ -18,12 +18,13 @@ usage	"verify-superstring [-C | -F] [...]"
 defmode		"Create index"			modedesc = "Prepare an index for verifying the superstring."
 defmode		"Verify superstring"	modedesc = "Verify the result."
 
-modeoption	"create-index"			C	"Create the index"																		mode = "Create index"			required
-modeoption	"superstring-file"		s	"Specify the location of the superstring file"	string	typestr = "filename"			mode = "Create index"			required
+modeoption	"create-index"			C	"Create the index"																										mode = "Create index"			required
+modeoption	"superstring-file"		s	"Specify the location of the superstring file"									string	typestr = "filename"			mode = "Create index"			required
 
-modeoption	"verify-superstring"	F	"Find the shortest common superstring"													mode = "Verify superstring"		required
-modeoption	"index-file"			i	"Specify the location of the index file"		string	typestr = "filename"			mode = "Verify superstring"		required
-modeoption	"source-file"			f	"Specify the location of the source FASTA file"	string	typestr = "filename"			mode = "Verify superstring"		required
+modeoption	"verify-superstring"	F	"Find the shortest common superstring"																					mode = "Verify superstring"		required
+modeoption	"index-file"			i	"Specify the location of the index file"										string	typestr = "filename"			mode = "Verify superstring"		required
+modeoption	"source-file"			f	"Specify the location of the source file"										string	typestr = "filename"			mode = "Verify superstring"		required
+modeoption	"source-format"			-	"Specify the source file format (default: FASTA)"	values = "FASTA", "text"	enum	typestr = "format"				mode = "Create index"			optional
 
 text "Examples:
     Create an index and output the seriaized data structure.

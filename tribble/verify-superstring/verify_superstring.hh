@@ -19,6 +19,7 @@
 
 #include <istream>
 #include <sdsl/cst_sct3.hpp>
+#include "cmdline.h" // For enum_source_format
 
 namespace tribble {
 	
@@ -30,7 +31,8 @@ namespace tribble {
 	
 	void verify_superstring(
 		char const *cst_fname,
-		char const *fasta_fname,
+		char const *source_fname,
+		enum_source_format source_format,
 		bool const multi_threaded
 	);
 }

@@ -19,6 +19,7 @@
 #include <tribble/dispatch_fn.hh>
 #include <tribble/fasta_reader.hh>
 #include <tribble/io.hh>
+#include <tribble/line_reader.hh>
 #include "verify_superstring.hh"
 
 
@@ -30,13 +31,57 @@ namespace {
 		tribble::cst_type											m_cst{};
 		dispatch_queue_t											m_loading_queue{};
 		dispatch_queue_t											m_verifying_queue{};
-		tribble::fasta_reader <verify_context, 1024>				m_fasta_reader;
 		tribble::vector_source										m_vs;
 		std::mutex													m_cerr_mutex{};
 		bool														m_did_succeed{true};
 
 	protected:
 		void cleanup() { delete this; }
+		
+		void handle_sequence_(
+			std::unique_ptr <tribble::vector_source::vector_type> &seq,
+			std::size_t const seq_length,
+			tribble::vector_source &vs,
+			std::function <void (std::ostream &stream)> err_msg_cb
+		)
+		{
+			assert(&vs == &m_vs);
+			
+			// Take the pointer from the given unique_ptr and pass it to the callback.
+			// When called, the callback packs it into an unique_ptr again and evetually
+			// returns the buffer to vector_source.
+			auto *seq_ptr(seq.release());
+			
+			auto verify_fn = [this, seq_ptr, seq_length, err_msg_cb](){
+				std::unique_ptr <tribble::vector_source::vector_type> seq(seq_ptr);
+				
+				tribble::cst_type::node_type const root(m_cst.root());
+				tribble::cst_type::node_type node(root);
+				for (std::size_t i(0); i < seq_length; ++i)
+				{
+					auto const idx(seq_length - i - 1);
+					auto const k((*seq)[idx]);
+					node = m_cst.wl(node, k);
+					if (root == node)
+					{
+						std::stringstream output;
+						output << "Did not find path for string ";
+						err_msg_cb(output);
+						output << ".";
+						
+						std::lock_guard <std::mutex> guard(m_cerr_mutex);
+						std::cerr << output.str() << std::endl;
+						m_did_succeed = false;
+						break;
+					}
+				}
+					
+				m_vs.put_vector(seq);
+			};
+			
+			//std::cerr << "Dispatching verify block" << std::endl;
+			tribble::dispatch_async_fn(m_verifying_queue, verify_fn);
+		}
 
 	public:
 		verify_context(
@@ -60,12 +105,12 @@ namespace {
 		}
 		
 		
-		void load_and_verify(char const *cst_fname_, char const *fasta_fname_)
+		void load_and_verify(char const *cst_fname_, char const *source_fname_, enum_source_format const source_format)
 		{
 			assert(cst_fname_);
-			assert(fasta_fname_);
+			assert(source_fname_);
 			std::string cst_fname(cst_fname_);
-			std::string fasta_fname(fasta_fname_);
+			std::string source_fname(source_fname_);
 
 			auto load_ds_fn = [this, cst_fname = std::move(cst_fname)](){
 				tribble::file_istream ds_stream;
@@ -77,17 +122,33 @@ namespace {
 				std::cerr << "Loading complete." << std::endl;
 			};
 			
-			auto read_sequences_fn = [this, fasta_fname = std::move(fasta_fname)](){
-				tribble::file_istream fasta_stream;
-				tribble::open_file_for_reading(fasta_fname.c_str(), fasta_stream);
+			auto read_sequences_fn = [this, source_fname = std::move(source_fname), source_format](){
+				tribble::file_istream source_stream;
+				tribble::open_file_for_reading(source_fname.c_str(), source_stream);
 				
-				m_fasta_reader.read_from_stream(fasta_stream, m_vs, *this);
+				if (source_format_arg_FASTA == source_format)
+				{
+					tribble::fasta_reader <verify_context> reader;
+					reader.read_from_stream(source_stream, m_vs, *this);
+				}
+				else if (source_format_arg_text == source_format)
+				{
+					tribble::line_reader <verify_context> reader;
+					reader.read_from_stream(source_stream, m_vs, *this);
+				}
+				else
+				{
+					std::stringstream output;
+					output << "Unexpected source file format '" << source_format << "'.";
+					
+					throw std::runtime_error(output.str());
+				}
 			};
 			
 			// Prevent aligning blocks from being executed before CST has been read.
 			tribble::dispatch_barrier_async_fn(m_verifying_queue, std::move(load_ds_fn));
 
-			// Load the data in the fasta file and process in callback.
+			// Load the data in the source file and process in callback.
 			tribble::dispatch_async_fn(m_loading_queue, std::move(read_sequences_fn));
 		}
 		
@@ -100,42 +161,26 @@ namespace {
 			tribble::vector_source &vs
 		)
 		{
-			assert(&vs == &m_vs);
-			
-			// Take the pointer from the given unique_ptr and pass it to the callback.
-			// When called, the callback packs it into an unique_ptr again and evetually
-			// returns the buffer to vector_source.
-			auto *seq_ptr(seq.release());
-			
-			auto verify_fn = [this, identifier, seq_ptr, seq_length](){
-				std::unique_ptr <tribble::vector_source::vector_type> seq(seq_ptr);
-				
-				tribble::cst_type::node_type const root(m_cst.root());
-				tribble::cst_type::node_type node(root);
-				for (std::size_t i(0); i < seq_length; ++i)
-				{
-					auto const idx(seq_length - i - 1);
-					auto const k((*seq)[idx]);
-					node = m_cst.wl(node, k);
-					if (root == node)
-					{
-						std::stringstream output;
-						output << "Did not find path for string with identifier '" << identifier << "'.";
-						
-						std::lock_guard <std::mutex> guard(m_cerr_mutex);
-						std::cerr << output.str() << std::endl;
-						m_did_succeed = false;
-						break;
-					}
-				}
-					
-				m_vs.put_vector(seq);
-			};
-			
-			//std::cerr << "Dispatching verify block" << std::endl;
-			tribble::dispatch_async_fn(m_verifying_queue, verify_fn);
+			std::function <void (std::ostream &stream)> cb([&](std::ostream &stream) {
+				stream << "with identifier '" << identifier << "'";
+			});
+			handle_sequence_(seq, seq_length, vs, cb);
 		}
 		
+		
+		void handle_sequence(
+			uint32_t const line_no,
+			std::unique_ptr <tribble::vector_source::vector_type> &seq,
+			std::size_t const seq_length,
+			tribble::vector_source &vs
+		)
+		{
+			std::function <void (std::ostream &stream)> cb([=](std::ostream &stream) {
+				stream << "on line " << line_no;
+			});
+			handle_sequence_(seq, seq_length, vs, cb);
+		}
+
 		
 		void finish()
 		{
@@ -171,7 +216,8 @@ namespace tribble {
 	
 	void verify_superstring(
 		char const *cst_fname,
-		char const *fasta_fname,
+		char const *source_fname,
+		enum_source_format source_format,
 		bool const multi_threaded
 	)
 	{
@@ -191,7 +237,7 @@ namespace tribble {
 		if (multi_threaded)
 			dispatch_release(verifying_queue);
 		
-		ctx->load_and_verify(cst_fname, fasta_fname);
+		ctx->load_and_verify(cst_fname, source_fname, source_format);
 		
 		// Calls pthread_exit.
 		dispatch_main();

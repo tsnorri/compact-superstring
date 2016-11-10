@@ -37,6 +37,7 @@ int main(int argc, char **argv)
 		tribble::verify_superstring(
 			args_info.index_file_arg,
 			args_info.source_file_arg,
+			args_info.source_format_arg,
 			multi_threaded
 		);
 	}
