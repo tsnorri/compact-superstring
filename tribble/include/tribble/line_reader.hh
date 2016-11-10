@@ -54,17 +54,12 @@ namespace tribble {
 		void read_from_stream(std::istream &stream, vector_source &vector_source, t_callback &cb) const
 		{
 			std::size_t const size(1024 * 1024);
-			std::size_t seq_length(0);
 			vector_type buffer(size, 0);
 			std::unique_ptr <vector_type> seq;
 			uint32_t line_no(0);
 			
 			try
 			{
-				vector_source.get_vector(seq);
-				if (t_initial_size && seq->size() < t_initial_size)
-					seq->resize(t_initial_size);
-				
 				// Get a char pointer to the data part of the buffer.
 				// This is safe because the element width is 8.
 				char *buffer_data(reinterpret_cast <char *>(buffer.data()));
@@ -73,17 +68,29 @@ namespace tribble {
 				{
 					++line_no;
 					
+					// Get a buffer if needed.
+					if (!seq.get())
+					{
+						vector_source.get_vector(seq);
+						if (t_initial_size && seq->size() < t_initial_size)
+							seq->resize(t_initial_size);
+					}
+
 					// Get the number of characters extracted by the last input operation.
 					// Delimiter is counted in gcount.
 					std::streamsize const count(stream.gcount() - 1);
 					
 					while (true)
 					{
-						auto const capacity(seq->size());
+						auto capacity(seq->size());
 						if (count <= capacity)
 							break;
 						else
 						{
+							// Make sure that the buffer actually grows.
+							if (0 == capacity)
+								capacity = 1;
+							
 							if (2 * capacity < capacity)
 								throw std::runtime_error("Can't reserve more space.");
 							
@@ -96,10 +103,12 @@ namespace tribble {
 					auto const it(buffer.begin());
 					std::copy_n(it, count, seq->begin());
 					
+					// If there was data, handle it.
 					if (count)
 					{
 						assert(seq.get());
-						cb.handle_sequence(line_no, seq, seq_length, vector_source);
+						cb.handle_sequence(line_no, seq, count, vector_source);
+						assert(nullptr == seq.get());
 					}
 				}
 			}
