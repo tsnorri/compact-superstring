@@ -24,7 +24,7 @@ modeoption	"superstring-file"		s	"Specify the location of the superstring file"	
 modeoption	"verify-superstring"	F	"Find the shortest common superstring"																					mode = "Verify superstring"		required
 modeoption	"index-file"			i	"Specify the location of the index file"										string	typestr = "filename"			mode = "Verify superstring"		required
 modeoption	"source-file"			f	"Specify the location of the source file"										string	typestr = "filename"			mode = "Verify superstring"		required
-modeoption	"source-format"			-	"Specify the source file format (default: FASTA)"	values = "FASTA", "text"	enum	typestr = "format"				mode = "Create index"			optional
+modeoption	"source-format"			-	"Specify the source file format (default: FASTA)"	values = "FASTA", "text"	enum	typestr = "format"				mode = "Verify superstring"		optional
 
 text "Examples:
     Create an index and output the seriaized data structure.
