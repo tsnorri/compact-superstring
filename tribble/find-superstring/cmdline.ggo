@@ -21,7 +21,7 @@ defmode		"Index visualization"	modedesc = "Output space breakdown of the index d
 
 modeoption	"create-index"			C	"Create the index"																								mode = "Create index"			required
 modeoption	"source-file"			f	"Specify the location of the source file"										string	typestr = "filename"	mode = "Create index"			required
-modeoption	"source-format"			-	"Specify the source file format (default: FASTA)"	values = "FASTA", "text"	enum	typestr = "format"		mode = "Create index"			optional
+modeoption	"source-format"			-	"Specify the source file format (default: FASTA)"	values = "FASTA", "text"	enum	typestr = "format"		mode = "Create index"			optional	default = "FASTA"
 modeoption	"sentinel-character"	-	"Specify the number of the string separator character to be used"				short	typestr = "number"		mode = "Create index"			optional
 
 modeoption	"find-superstring"		F	"Find the shortest common superstring"																			mode = "Find superstring"		required
