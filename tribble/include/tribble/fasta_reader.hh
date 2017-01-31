@@ -43,7 +43,7 @@ namespace tribble { namespace detail {
 
 namespace tribble {
 	
-	template <typename t_callback = detail::fasta_reader_cb, size_t t_initial_size = 0>
+	template <typename t_callback = detail::fasta_reader_cb, size_t t_initial_size = 128>
 	class fasta_reader
 	{
 	protected:
@@ -114,7 +114,11 @@ namespace tribble {
 							
 							// std::vector may reserve more than 2 * capacity (using reserve),
 							// sdsl::int_vector reserves the exact amount.
-							seq->resize(2 * capacity);
+							// Make sure that at least some space is reserved.
+							auto new_size(capacity);
+							if (new_size < 64)
+								new_size = 64;
+							seq->resize(new_size);
 						}
 					}
 
