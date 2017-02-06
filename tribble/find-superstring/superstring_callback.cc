@@ -221,6 +221,11 @@ std::size_t Superstring_callback::get_next_right_available(std::size_t index){
 
 void Superstring_callback::write_string(int64_t string_start, int64_t skip, std::ostream& out, sdsl::int_vector<0>& concatenation){
 	int64_t k = string_start;
+	if (! (k < concatenation.size()))
+	{
+		std::cerr << "String_start: " << string_start << ", concatenation.size(): " << concatenation.size() << std::endl;
+		throw std::runtime_error("String index out of bounds");
+	}
 	char c = alphabet.comp2char[concatenation[k]];
 	while(c != sentinel_character){
 		assert(c);
