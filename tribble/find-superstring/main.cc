@@ -34,13 +34,13 @@ namespace {
 		void handle_exception(std::exception const &exc) override
 		{
 			std::cerr << "Got an exception: " << exc.what() << std::endl;
-			exit(EXIT_FAILURE);
+			abort();
 		}
 		
 		void handle_unknown_exception() override
 		{
 			std::cerr << "Got an unknown exception." << std::endl;
-			exit(EXIT_FAILURE);
+			abort();
 		}
 	};
 
@@ -49,7 +49,7 @@ namespace {
 	{
 		char const *errmsg(strerror(errno));
 		std::cerr << "Got an error: " << errmsg << std::endl;
-		exit(EXIT_FAILURE);
+		abort();
 	}
 
 
