@@ -43,5 +43,8 @@ lib/libdispatch/libdispatch-build/src/libdispatch.a:
 	cd lib/libdispatch && \
 	mkdir libdispatch-build && \
 	cd libdispatch-build && \
-	../configure --cc="$(CC)" --c++="$(CXX)" --release
+	../configure --cc="$(CC)" --c++="$(CXX)" --release -- \
+		-DPTHREAD_WORKQUEUE_INCLUDE_DIRS="" \
+		-DPTHREAD_WORKQUEUE_LIBRARIES="" \
+		-DBLOCKS_RUNTIME_LIBRARIES=""
 	$(MAKE) -C lib/libdispatch/libdispatch-build VERBOSE=1
