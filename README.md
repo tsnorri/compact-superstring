@@ -40,14 +40,14 @@ On Linux also the following libraries are required to build and run a tool to ve
 Useful make targets include:
 
 <dl>
-	<dt>all</dt>
-	<dd>Build everything</dd>
-	
-	<dt>clean</dt>
-	<dd>Remove build products except for dependencies (in the `lib` folder).</dd>
-	
-	<dt>clean-all</dt>
-	<dd>Remove all build products.</dd>
+<dt>all</dt>
+<dd>Build everything</dd>
+
+<dt>clean</dt>
+<dd>Remove build products except for dependencies (in the `lib` folder).</dd>
+
+<dt>clean-all</dt>
+<dd>Remove all build products.</dd>
 </dl>
 
 

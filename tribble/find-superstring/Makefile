@@ -23,3 +23,5 @@ clean:
 
 $(TARGET): $(OBJECTS)
 	$(CXX) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
+
+main.o: cmdline.c
