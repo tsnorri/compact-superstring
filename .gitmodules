@@ -7,3 +7,6 @@
 [submodule "lib/libdispatch"]
 	path = lib/libdispatch
 	url = https://github.com/nickhutchinson/libdispatch.git
+[submodule "lib/aho_corasick"]
+	path = lib/aho_corasick
+	url = https://github.com/tsnorri/aho_corasick.git

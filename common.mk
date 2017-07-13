@@ -30,6 +30,7 @@ CPPFLAGS	=	-DMODE_TI \
 				-DHAVE_ATTRIBUTE_PURE \
 				-DHAVE_ATTRIBUTE_CONST \
 				-I../include \
+				-I../../lib/aho_corasick/src \
 				-I../../lib/bandit \
 				-I../../lib/range-v3/include \
 				-I../../lib/sdsl/build/include \
