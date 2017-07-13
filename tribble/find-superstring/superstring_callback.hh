@@ -22,8 +22,8 @@
 #include <vector>
 #include <string>
 #include <tuple>
+#include <tribble/union_find.hh>
 #include "find_superstring.hh"
-#include "union_find.hh"
 
 
 namespace tribble {

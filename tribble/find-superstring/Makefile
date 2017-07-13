@@ -13,8 +13,7 @@ OBJECTS			=	check_non_unique_strings.o \
 					find_superstring.o \
 					main.o \
 					superstring_callback.o \
-					visualize.o \
-					union_find.o
+					visualize.o
 
 all: $(TARGET)
 

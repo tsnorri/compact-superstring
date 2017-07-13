@@ -14,7 +14,7 @@
  along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
-#include "union_find.hh"
+#include <tribble/union_find.hh>
 #include <utility>
 #include <iostream>
 
