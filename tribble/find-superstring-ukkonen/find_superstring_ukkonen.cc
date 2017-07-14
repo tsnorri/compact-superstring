@@ -23,17 +23,13 @@ namespace tribble {
 	void insert(
 		trie_type &trie,
 		string_map_type &strings_by_state,
-		state_map_type &states_by_string,
 		string_type const &string,
 		std::size_t const idx
 	)
 	{
 		auto const state_ptr(trie.insert(string));
 		
-		assert(nullptr == states_by_string[idx]);
 		assert(strings_by_state.cend() == strings_by_state.find(state_ptr));
-	
-		states_by_string[idx] = state_ptr;
 		strings_by_state[state_ptr] = idx;
 	}
 }

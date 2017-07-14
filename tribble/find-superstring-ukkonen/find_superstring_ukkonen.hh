@@ -70,7 +70,6 @@ namespace tribble {
 	void insert(
 		trie_type &trie,
 		string_map_type &strings_by_state,
-		state_map_type &states_by_string,
 		string_type const &string,
 		std::size_t const idx
 	);
