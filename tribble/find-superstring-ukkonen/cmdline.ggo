@@ -1,0 +1,25 @@
+#  Copyright (C) 2017 Tuukka Norri
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see http://www.gnu.org/licenses/ .
+
+package "tribble"
+version "0.1"
+purpose "Find the shortest common superstring using Ukkonen's greedy algorithm."
+usage	"find-superstring-ukkonen [-C | -F | -I] [...]"
+
+option	"source-file"			f	"Specify the location of the source file"										string	typestr = "filename"			required
+option	"source-format"			-	"Specify the source file format (default: FASTA)"	values = "FASTA", "text"	enum	typestr = "format"				optional	default = "FASTA"
+
+text "\n"
+text "Example:
+    Generate the shortest common superstring.
+       find-superstring-ukkonen -f example.fa"
+text "\n"
