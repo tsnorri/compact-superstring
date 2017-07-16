@@ -49,7 +49,7 @@ namespace tribble { namespace detail {
 			vector_source &vector_source
 		)
 		{
-			std::string str(reinterpret_cast <char const *>(seq->data()), seq->size());
+			std::string str(reinterpret_cast <char const *>(seq->data()), seq_length);
 			insert(*m_trie, *m_strings_by_state, str, m_idx++);
 			vector_source.put_vector(seq);
 		}
@@ -62,7 +62,7 @@ namespace tribble { namespace detail {
 			vector_source &vector_source
 		)
 		{
-			std::string str(reinterpret_cast <char const *>(seq->data()), seq->size());
+			std::string str(reinterpret_cast <char const *>(seq->data()), seq_length);
 			insert(*m_trie, *m_strings_by_state, str, m_idx++);
 			vector_source.put_vector(seq);
 		}
