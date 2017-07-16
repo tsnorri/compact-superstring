@@ -11,6 +11,10 @@ tribble/find-superstring-ukkonen/find-superstring-ukkonen
 
 tribble/gen-repetitive/gen-repetitive
 
+tribble/verify-superstring/cmdline.c
+tribble/verify-superstring/cmdline.h
+tribble/verify-superstring/verify-superstring
+
 # Test files
 testcases/*.sdsl
 testcases/*.strings
