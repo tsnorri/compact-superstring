@@ -4,7 +4,7 @@ include ../../common.mk
 TARGET			=	find-superstring-ukkonen
 
 LDFLAGS			+=	$(BOOST_IOSTREAMS_LIB) ../src/libtribble.a
-# CPPFLAGS		+=	-DDEBUGGING_OUTPUT
+#CPPFLAGS		+=	-DDEBUGGING_OUTPUT
 
 OBJECTS			=	cmdline.o \
 					find_superstring_ukkonen.o \

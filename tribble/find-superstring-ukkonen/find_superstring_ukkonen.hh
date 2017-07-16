@@ -56,6 +56,7 @@ namespace tribble {
 	
 	typedef aho_corasick::basic_trie <char>								trie_type;
 	typedef std::string													string_type;
+	typedef std::vector <string_type>									string_list_type;
 	typedef std::unordered_map <trie_type::state_ptr_type, std::size_t>	string_map_type;
 	typedef std::vector <trie_type::state_ptr_type>						state_map_type;
 	typedef std::vector <std::size_t>									index_list_type;

@@ -24,17 +24,20 @@ namespace tribble { namespace detail {
 	class create_index_cb {
 		
 	protected:
-		trie_type					*m_trie{nullptr};
-		tribble::string_map_type	*m_strings_by_state{nullptr};
-		tribble::state_map_type		*m_states_by_string{nullptr};
-		std::size_t					m_idx{0};
+		string_list_type	*m_strings{nullptr};
+		trie_type			*m_trie{nullptr};
+		string_map_type		*m_strings_by_state{nullptr};
+		state_map_type		*m_states_by_string{nullptr};
+		std::size_t			m_idx{0};
 		
 	public:
 		create_index_cb(
-			tribble::trie_type &trie,
-			tribble::string_map_type &strings_by_state,
-			tribble::state_map_type &states_by_string
+			string_list_type &strings,
+			trie_type &trie,
+			string_map_type &strings_by_state,
+			state_map_type &states_by_string
 		):
+			m_strings(&strings),
 			m_trie(&trie),
 			m_strings_by_state(&strings_by_state),
 			m_states_by_string(&states_by_string)
@@ -50,7 +53,8 @@ namespace tribble { namespace detail {
 		)
 		{
 			std::string str(reinterpret_cast <char const *>(seq->data()), seq_length);
-			insert(*m_trie, *m_strings_by_state, str, m_idx++);
+			m_strings->emplace_back(std::move(str));
+			insert(*m_trie, *m_strings_by_state, m_strings->back(), m_idx++);
 			vector_source.put_vector(seq);
 		}
 		
@@ -63,7 +67,8 @@ namespace tribble { namespace detail {
 		)
 		{
 			std::string str(reinterpret_cast <char const *>(seq->data()), seq_length);
-			insert(*m_trie, *m_strings_by_state, str, m_idx++);
+			m_strings->emplace_back(std::move(str));
+			insert(*m_trie, *m_strings_by_state, m_strings->back(), m_idx++);
 			vector_source.put_vector(seq);
 		}
 		
@@ -86,6 +91,7 @@ namespace tribble {
 	void read_input(
 		tribble::file_istream &source_stream,
 		enum_source_format const source_format,
+		tribble::string_list_type &strings,
 		tribble::trie_type &trie,
 		tribble::string_map_type &strings_by_state,
 		tribble::state_map_type &states_by_string
@@ -94,7 +100,7 @@ namespace tribble {
 		// Read the sequence from input and create the index in the callback.
 		std::cerr << "Reading the sequences…" << std::flush;
 		vector_source vs(1, false);
-		detail::create_index_cb cb(trie, strings_by_state, states_by_string);
+		detail::create_index_cb cb(strings, trie, strings_by_state, states_by_string);
 
 		if (source_format_arg_FASTA == source_format)
 		{

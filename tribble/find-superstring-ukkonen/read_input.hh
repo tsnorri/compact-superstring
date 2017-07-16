@@ -29,6 +29,7 @@ namespace tribble {
 	void read_input(
 		tribble::file_istream &source_stream,
 		enum_source_format const source_format,
+		tribble::string_list_type &strings,
 		tribble::trie_type &trie,
 		tribble::string_map_type &strings_by_state,
 		tribble::state_map_type &states_by_string

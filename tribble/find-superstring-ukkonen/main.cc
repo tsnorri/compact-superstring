@@ -31,6 +31,8 @@ int main(int argc, char **argv)
 	if (0 != cmdline_parser(argc, argv, &args_info))
 		exit(EXIT_FAILURE);
 	
+	bool const output_is_terminal(isatty(fileno(stdin)));
+	
 	std::ios_base::sync_with_stdio(false);	// Don't use C style IO after calling cmdline_parser.
 	std::cin.tie(nullptr);					// We don't require any input from the user.
 
@@ -40,9 +42,17 @@ int main(int argc, char **argv)
 	tribble::trie_type trie;
 	trie.remove_substrings();
 	
+	tribble::string_list_type strings;
 	tribble::string_map_type strings_by_state;
 	tribble::state_map_type states_by_string;
-	tribble::read_input(source_stream, args_info.source_format_arg, trie, strings_by_state, states_by_string);
+	tribble::read_input(
+		source_stream,
+		args_info.source_format_arg,
+		strings,
+		trie,
+		strings_by_state,
+		states_by_string
+	);
 	
 	std::size_t const string_count(trie.num_keywords());
 	
@@ -65,9 +75,29 @@ int main(int argc, char **argv)
 				std::cerr << "  " << next_idx << " " << ns.overlap_length << std::endl;
 			}
 		}
+		
+		std::size_t i(0);
+		for (auto const &str : strings)
+			std::cerr << i++ << ": " << str << std::endl;
 	}
 
-	// FIXME: handle output.
+	// Output the superstring.
+	for (auto const idx : start_positions)
+	{
+		std::cout << strings[idx];
+
+		auto next_idx(idx);
+		while (true)
+		{
+			auto const &ns(links[next_idx]);
+			next_idx = ns.index;
+			if (tribble::next_string::max_index == next_idx)
+				break;
+			
+			std::cout << (strings[next_idx].data() + ns.overlap_length);
+		}
+	}
+	std::cout << std::endl;
 		
 	return 0;
 }
