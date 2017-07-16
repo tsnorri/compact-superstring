@@ -3,6 +3,10 @@ tribble/find-superstring/cmdline.c
 tribble/find-superstring/cmdline.h
 tribble/find-superstring/find-superstring
 
+tribble/find-superstring-ukkonen/cmdline.c
+tribble/find-superstring-ukkonen/cmdline.h
+tribble/find-superstring-ukkonen/find-superstring-ukkonen
+
 # Test files
 testcases/*.sdsl
 testcases/*.strings
