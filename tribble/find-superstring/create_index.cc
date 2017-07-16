@@ -22,9 +22,9 @@
 #include <sdsl/io.hpp>
 #include <tribble/fasta_reader.hh>
 #include <tribble/line_reader.hh>
+#include <tribble/timer.hh>
 #include <unistd.h>
 #include "find_superstring.hh"
-#include "timer.hh"
 
 namespace ios = boost::iostreams;
 

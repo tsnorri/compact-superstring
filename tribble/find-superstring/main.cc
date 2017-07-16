@@ -17,10 +17,10 @@
 
 #include <iostream>
 #include <tribble/io.hh>
+#include <tribble/timer.hh>
 #include "cmdline.h"
 #include "find_superstring.hh"
 #include "superstring_callback.hh"
-#include "timer.hh"
 
 
 namespace {
