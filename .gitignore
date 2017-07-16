@@ -1,3 +1,5 @@
+**/.DS_Store
+
 # Products
 tribble/find-superstring/cmdline.c
 tribble/find-superstring/cmdline.h
