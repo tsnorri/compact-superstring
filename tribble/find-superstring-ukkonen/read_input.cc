@@ -44,6 +44,15 @@ namespace tribble { namespace detail {
 		{
 		}
 		
+		void insert_and_check(std::string &str)
+		{
+			if (insert(*m_trie, *m_strings_by_state, str, m_idx))
+			{
+				m_strings->emplace_back(std::move(str));
+				++m_idx;
+			}
+		}
+		
 		// For fasta_reader.
 		void handle_sequence(
 			std::string const &identifier,
@@ -53,8 +62,7 @@ namespace tribble { namespace detail {
 		)
 		{
 			std::string str(reinterpret_cast <char const *>(seq->data()), seq_length);
-			m_strings->emplace_back(std::move(str));
-			insert(*m_trie, *m_strings_by_state, m_strings->back(), m_idx++);
+			insert_and_check(str);
 			vector_source.put_vector(seq);
 		}
 		
@@ -67,8 +75,7 @@ namespace tribble { namespace detail {
 		)
 		{
 			std::string str(reinterpret_cast <char const *>(seq->data()), seq_length);
-			m_strings->emplace_back(std::move(str));
-			insert(*m_trie, *m_strings_by_state, m_strings->back(), m_idx++);
+			insert_and_check(str);
 			vector_source.put_vector(seq);
 		}
 		

@@ -68,7 +68,7 @@ namespace tribble {
 	
 	
 	// Insert a string into the trie.
-	void insert(
+	bool insert(
 		trie_type &trie,
 		string_map_type &strings_by_state,
 		string_type const &string,

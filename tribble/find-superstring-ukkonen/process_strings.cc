@@ -123,6 +123,7 @@ namespace tribble {
 	void process_strings(
 		trie_type &trie,
 		string_map_type const &strings_by_state,
+		state_map_type const &states_by_string,
 		next_string_map_type &dst,
 		index_list_type &start_positions
 	)
@@ -199,10 +200,13 @@ namespace tribble {
 						std::cerr << "Last: ";
 						std::cerr << boost::algorithm::join(last | boost::adaptors::transformed(static_cast <std::string(*)(size_t)>(std::to_string)), ", ") << std::endl;
 					}
-					
+
+					if (0 == p_queue.size())
+						break;
+
 					if (processed_strings[string_idx])
 						continue;
-	
+					
 					// (6), (7), (8)
 					auto ii(p_queue.front());
 					if (first[ii] == string_idx)
@@ -214,6 +218,7 @@ namespace tribble {
 						p_queue.push_back(ii);
 						ii = p_queue.front();
 					}
+					assert(p_queue.size());
 					p_queue.pop_front(); // (11)
 					
 					//if (left_available[ii] && right_available[string_idx])
@@ -249,7 +254,7 @@ namespace tribble {
 		std::size_t i(0);
 		for (auto const val : right_available)
 		{
-			if (val)
+			if (val && states_by_string[i]->get_emits().size())
 				start_positions.push_back(i);
 			++i;
 		}

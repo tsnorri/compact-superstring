@@ -20,7 +20,7 @@
 
 namespace tribble {
 
-	void insert(
+	bool insert(
 		trie_type &trie,
 		string_map_type &strings_by_state,
 		string_type const &string,
@@ -28,8 +28,13 @@ namespace tribble {
 	)
 	{
 		auto const state_ptr(trie.insert(string));
+		if (state_ptr)
+		{
+			assert(strings_by_state.cend() == strings_by_state.find(state_ptr));
+			strings_by_state[state_ptr] = idx;
+			return true;
+		}
 		
-		assert(strings_by_state.cend() == strings_by_state.find(state_ptr));
-		strings_by_state[state_ptr] = idx;
+		return false;
 	}
 }

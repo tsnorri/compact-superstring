@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 		tribble::timer timer;
 		std::cerr << "Processing the strings…" << std::flush;
 
-		tribble::process_strings(trie, strings_by_state, links, start_positions);
+		tribble::process_strings(trie, strings_by_state, states_by_string, links, start_positions);
 		
 		timer.stop();
 		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
@@ -105,6 +105,8 @@ int main(int argc, char **argv)
 	for (auto const idx : start_positions)
 	{
 		std::cout << strings[idx];
+		if (DEBUGGING_OUTPUT)
+			std::cout << ' ';
 
 		auto next_idx(idx);
 		while (true)
@@ -115,6 +117,8 @@ int main(int argc, char **argv)
 				break;
 			
 			std::cout << (strings[next_idx].data() + ns.overlap_length);
+			if (DEBUGGING_OUTPUT)
+				std::cout << ' ';
 		}
 	}
 	std::cout << std::endl;
