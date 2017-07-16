@@ -7,6 +7,8 @@ tribble/find-superstring-ukkonen/cmdline.c
 tribble/find-superstring-ukkonen/cmdline.h
 tribble/find-superstring-ukkonen/find-superstring-ukkonen
 
+tribble/gen-repetitive/gen-repetitive
+
 # Test files
 testcases/*.sdsl
 testcases/*.strings
