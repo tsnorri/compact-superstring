@@ -98,7 +98,6 @@ namespace tribble {
 	)
 	{
 		// Read the sequence from input and create the index in the callback.
-		std::cerr << "Reading the sequences…" << std::flush;
 		vector_source vs(1, false);
 		detail::create_index_cb cb(strings, trie, strings_by_state, states_by_string);
 

@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <tribble/io.hh>
+#include <tribble/timer.hh>
 #include "cmdline.h"
 #include "find_superstring_ukkonen.hh"
 #include "read_input.hh"
@@ -36,29 +37,48 @@ int main(int argc, char **argv)
 	std::ios_base::sync_with_stdio(false);	// Don't use C style IO after calling cmdline_parser.
 	std::cin.tie(nullptr);					// We don't require any input from the user.
 
-	tribble::file_istream source_stream;
-	tribble::open_file_for_reading(args_info.source_file_arg, source_stream);
-	
 	tribble::trie_type trie;
 	trie.remove_substrings();
 	
 	tribble::string_list_type strings;
 	tribble::string_map_type strings_by_state;
 	tribble::state_map_type states_by_string;
-	tribble::read_input(
-		source_stream,
-		args_info.source_format_arg,
-		strings,
-		trie,
-		strings_by_state,
-		states_by_string
-	);
+	
+	tribble::file_istream source_stream;
+	
+	{
+		tribble::timer timer;
+		std::cerr << "Reading the sequences…" << std::flush;
+
+		tribble::open_file_for_reading(args_info.source_file_arg, source_stream);
+		
+		tribble::read_input(
+			source_stream,
+			args_info.source_format_arg,
+			strings,
+			trie,
+			strings_by_state,
+			states_by_string
+		);
+		
+		timer.stop();
+		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
+	}
 	
 	std::size_t const string_count(trie.num_keywords());
 	
 	tribble::next_string_map_type links(string_count);
 	tribble::index_list_type start_positions;
-	tribble::process_strings(trie, strings_by_state, links, start_positions);
+	
+	{
+		tribble::timer timer;
+		std::cerr << "Processing the strings…" << std::flush;
+
+		tribble::process_strings(trie, strings_by_state, links, start_positions);
+		
+		timer.stop();
+		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
+	}
 	
 	if (DEBUGGING_OUTPUT)
 	{
