@@ -102,6 +102,7 @@ namespace tribble { namespace detail {
 		std::vector <vector_type> m_sequences;
 		timer m_read_timer{};
 		char m_sentinel{};
+		uint32_t m_seqno{0};
 
 	protected:
 		void handle_sentinel_in_text()
@@ -143,6 +144,10 @@ namespace tribble { namespace detail {
 		)
 		{
 			copy_seq(seq, seq_length, vs);
+			++m_seqno;
+
+			if (0 == m_seqno % 10000)
+				std::cerr << " " << m_seqno << std::flush;
 		}
 		
 		// For line-oriented text.
@@ -154,6 +159,9 @@ namespace tribble { namespace detail {
 		)
 		{
 			copy_seq(seq, seq_length, vs);
+
+			if (0 == lineno % 10000)
+				std::cerr << " " << lineno << std::flush;
 		}
 
 		void finish()
