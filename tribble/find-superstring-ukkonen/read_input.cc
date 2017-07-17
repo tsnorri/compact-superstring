@@ -29,6 +29,7 @@ namespace tribble { namespace detail {
 		string_map_type		*m_strings_by_state{nullptr};
 		state_map_type		*m_states_by_string{nullptr};
 		std::size_t			m_idx{0};
+		std::size_t			m_seqno{0};
 		
 	public:
 		create_index_cb(
@@ -64,11 +65,15 @@ namespace tribble { namespace detail {
 			std::string str(reinterpret_cast <char const *>(seq->data()), seq_length);
 			insert_and_check(str);
 			vector_source.put_vector(seq);
+
+			++m_seqno;
+			if (0 == m_seqno % 10000)
+				std::cerr << " " << m_seqno << std::flush;
 		}
 		
 		// For line_reader.
 		void handle_sequence(
-			uint32_t line,
+			uint32_t lineno,
 			std::unique_ptr <vector_source::vector_type> &seq,
 			std::size_t const &seq_length,
 			vector_source &vector_source
@@ -77,6 +82,9 @@ namespace tribble { namespace detail {
 			std::string str(reinterpret_cast <char const *>(seq->data()), seq_length);
 			insert_and_check(str);
 			vector_source.put_vector(seq);
+
+			if (0 == lineno % 10000)
+				std::cerr << " " << lineno << std::flush;
 		}
 		
 		void finish()
