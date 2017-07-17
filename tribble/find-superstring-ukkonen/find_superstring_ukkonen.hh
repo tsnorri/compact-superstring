@@ -64,6 +64,7 @@ namespace tribble {
 	typedef std::vector <index_list_type>								index_list_map_type;
 	typedef std::vector <index_queue_type>								index_queue_map_type;
 	typedef std::deque <trie_type::state_ptr_type>						state_ptr_queue_type;
+	typedef std::vector <trie_type::state_ptr_type>						state_ptr_list_type;
 	typedef std::vector <next_string>									next_string_map_type;
 	
 	
