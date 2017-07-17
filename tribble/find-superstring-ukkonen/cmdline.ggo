@@ -13,7 +13,7 @@
 package "tribble"
 version "0.1"
 purpose "Find the shortest common superstring using Ukkonen's greedy algorithm."
-usage	"find-superstring-ukkonen [-C | -F | -I] [...]"
+usage	"find-superstring-ukkonen -f source.fa [...]"
 
 option	"source-file"			f	"Specify the location of the source file"										string	typestr = "filename"			required
 option	"source-format"			-	"Specify the source file format (default: FASTA)"	values = "FASTA", "text"	enum	typestr = "format"				optional	default = "FASTA"
