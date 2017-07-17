@@ -15,7 +15,6 @@
  */
 
 #include <sdsl/int_vector.hpp>
-#include "find_superstring.hh"
 
 
 namespace tribble {
@@ -23,6 +22,9 @@ namespace tribble {
 	// Maintain a pointerless linked list.
 	class linked_list
 	{
+	public:
+		typedef std::size_t size_type;
+		
 	protected:
 		sdsl::int_vector <>	m_jump;
 		std::size_t			m_j_idx{0};

@@ -17,9 +17,9 @@
 
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <boost/iostreams/stream.hpp>
+#include <tribble/linked_list.hh>
 #include <tribble/timer.hh>
 #include "find_superstring.hh"
-#include "linked_list.hh"
 #include "string_array.hh"
 
 namespace ios = boost::iostreams;
