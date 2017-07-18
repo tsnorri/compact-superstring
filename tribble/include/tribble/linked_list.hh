@@ -14,6 +14,9 @@
  along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
+#ifndef TRIBBLE_LINKED_LIST_HH
+#define TRIBBLE_LINKED_LIST_HH
+
 #include <sdsl/int_vector.hpp>
 
 
@@ -27,68 +30,68 @@ namespace tribble {
 		
 	protected:
 		sdsl::int_vector <>	m_jump;
-		std::size_t			m_j_idx{0};
-		size_type			m_i{0};
+		size_type			m_prev{0};
+		size_type			m_curr{0};
 		size_type			m_limit{0};
+		size_type			m_size{0};
 		
 	public:
 		linked_list() = default;
 		
 		linked_list(std::size_t const count, std::size_t const bits):
-			m_jump(count, 0, bits),
-			m_limit(count - 1)
+			m_jump(1 + count, 0, bits),
+			m_limit(count),
+			m_size(count)
 		{
-			for (std::size_t i(0); i < count; ++i)
+			for (size_type i(0); i < 1 + count; ++i)
 				m_jump[i] = i;
 		}
 		
-		inline size_type get_i() const { return m_i; }
+		void resize(size_type const count, size_type const width)
+		{
+			size_type count_(1 + count);
+			sdsl::int_vector <> temp(count_, 0, width);
+			for (size_type i(0); i < count_; ++i)
+				temp[i] = i;
+			
+			m_jump = std::move(temp);
+			m_limit = count;
+			m_size = count;
+		}
+		
+		inline size_type current() const { return m_curr - 1; }
+		inline size_type size() const { return m_size; }
 		
 		inline bool reset()
 		{
-			m_j_idx = 0;
-			m_i = m_jump[m_j_idx];
-			
-			if (m_i < m_limit)
-				return true;
-			
-			return false;
+			m_prev = m_jump[0];
+			m_curr = 1 + m_prev;
+			return 0 < m_size;
 		}
 		
-		inline bool can_advance() const
+		inline bool at_end() const
 		{
-			return m_i < m_limit;
+			return 0 == m_size || (! (m_curr <= m_limit));
 		}
-	
+		
 		inline void advance()
 		{
-			advance(1);
+			auto const next(1 + m_jump[m_curr]);
+			m_prev = m_curr;
+			m_curr = next;
 		}
 		
 		inline void advance_and_mark_skipped()
 		{
-			advance_and_mark_skipped(1);
-		}
-		
-		inline void advance(size_type const count)
-		{
-			std::size_t const next_j_idx(m_i + count);
-			std::size_t const next_i(m_jump[next_j_idx]);
-			m_j_idx = next_j_idx;
-			m_i = next_i;
-		}
-		
-		inline void advance_and_mark_skipped(size_type const count)
-		{
-			std::size_t const next_j_idx(m_i + count);
-			std::size_t const next_i(m_jump[next_j_idx]);
-			m_jump[m_j_idx] = next_i;
-			m_i = next_i;
+			auto cv(m_jump[m_curr]);
+			m_jump[m_prev] = cv;
+			m_curr = 1 + cv;
+			--m_size;
 		}
 		
 		inline void print() const
 		{
-			std::cerr << "j_idx: " << m_j_idx << " i: " << m_i << " limit: " << m_limit << std::endl;
+			std::cerr << "curr: " << m_curr << " prev: " << m_prev << " limit: " << m_limit << " size: " << m_size << std::endl;
 			std::cerr << "jump:";
 			for (auto const k : m_jump)
 				std::cerr << " " << k;
@@ -96,3 +99,5 @@ namespace tribble {
 		}
 	};
 }
+
+#endif

@@ -57,11 +57,11 @@ namespace {
 			auto const remaining_suffix_length(max_length - cl);
 			
 			// Iterate the range where the strings have equal lengths.
-			while (index_list.can_advance())
+			while (!index_list.at_end())
 			{
 				// Follow one suffix link for each node on one iteration of the outer loop.
 				
-				auto const i(string_count - index_list.get_i());
+				auto const i(string_count - index_list.current());
 				assert(i);
 				
 				// Get the next longest string.

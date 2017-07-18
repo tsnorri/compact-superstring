@@ -20,7 +20,6 @@
 #include <sdsl/int_vector.hpp>
 #include <sdsl/suffix_array_algorithm.hpp>
 #include <sdsl/wt_algorithm.hpp>
-#include <tribble/linked_list.hh>
 #include "find_superstring.hh"
 #include "string_array.hh"
 
