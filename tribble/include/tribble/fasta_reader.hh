@@ -36,6 +36,7 @@ namespace tribble { namespace detail {
 			vector_source.put_vector(seq);
 		}
 		
+		void start() {}
 		void finish() {}
 	};
 }}
@@ -57,6 +58,8 @@ namespace tribble {
 			vector_type buffer(size, 0);
 			std::unique_ptr <vector_type> seq;
 			std::string current_identifier;
+			
+			cb.start();
 			
 			try
 			{

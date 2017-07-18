@@ -155,6 +155,10 @@ namespace tribble { namespace detail {
 		{
 			copy_seq(seq, seq_length, vs);
 		}
+		
+		void start()
+		{
+		}
 
 		void finish()
 		{
