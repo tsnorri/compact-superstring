@@ -17,13 +17,102 @@
 
 #include <tribble/fasta_reader.hh>
 #include <tribble/line_reader.hh>
+#include <tribble/timer.hh>
 #include "read_input.hh"
 
 
 namespace tribble { namespace detail {
+	
+	class map_alphabet_cb {
+		
+	protected:
+		tribble::timer		m_timer;
+		char_map_type	*m_char2comp;
+		char_map_type	*m_comp2char;
+		std::size_t			m_seqno{0};
+		std::size_t			m_charno{0};
+		
+	public:
+		map_alphabet_cb(
+			char_map_type &char2comp,
+			char_map_type &comp2char
+		):
+			m_char2comp(&char2comp),
+			m_comp2char(&comp2char)
+		{
+		}
+		
+		void process_sequence(vector_source::vector_type &seq)
+		{
+			for (auto const c : seq)
+			{
+				auto &ref_1((*m_char2comp)[c]);
+				
+				// If a character number has already been assigned, skip.
+				if (m_charno <= ref_1)
+				{
+					ref_1 = m_charno;
+					auto &ref_2((*m_comp2char)[m_charno]);
+					ref_2 = c;
+					
+					// If this was the last available character number, stop.
+					if (255 == m_charno)
+						break;
+					
+					++m_charno;
+				}
+			}
+		}
+		
+		// For fasta_reader.
+		void handle_sequence(
+			std::string const &identifier,
+			std::unique_ptr <vector_source::vector_type> &seq,
+			std::size_t const &seq_length,
+			vector_source &vector_source
+		)
+		{
+			process_sequence(*seq);
+			vector_source.put_vector(seq);
+
+			++m_seqno;
+			if (0 == m_seqno % 10000)
+				std::cerr << " " << m_seqno << std::flush;
+		}
+		
+		// For line_reader.
+		void handle_sequence(
+			uint32_t lineno,
+			std::unique_ptr <vector_source::vector_type> &seq,
+			std::size_t const &seq_length,
+			vector_source &vector_source
+		)
+		{
+			process_sequence(*seq);
+			vector_source.put_vector(seq);
+
+			if (0 == lineno % 10000)
+				std::cerr << " " << lineno << std::flush;
+		}
+		
+		void start()
+		{
+			m_timer.start();
+			std::cerr << "  Compressing the alphabet…" << std::flush;
+		}
+		
+		void finish()
+		{
+			m_timer.stop();
+			std::cerr << " finished in " << m_timer.ms_elapsed() << " ms." << std::endl;
+		}
+	};
+	
+	
 	class create_index_cb {
 		
 	protected:
+		tribble::timer		m_timer;
 		string_vector_type	*m_strings{nullptr};
 		trie_type			*m_trie{nullptr};
 		string_map_type		*m_strings_by_state{nullptr};
@@ -87,6 +176,12 @@ namespace tribble { namespace detail {
 				std::cerr << " " << lineno << std::flush;
 		}
 		
+		void start()
+		{
+			m_timer.start();
+			std::cerr << "  Inserting the sequences…" << std::flush;
+		}
+		
 		void finish()
 		{
 			m_states_by_string->resize(m_strings_by_state->size());
@@ -95,6 +190,9 @@ namespace tribble { namespace detail {
 				assert(nullptr == (*m_states_by_string)[kv.second]);
 				(*m_states_by_string)[kv.second] = kv.first;
 			}
+			
+			m_timer.stop();
+			std::cerr << " finished in " << m_timer.ms_elapsed() << " ms." << std::endl;
 		}
 	};
 
@@ -103,28 +201,60 @@ namespace tribble { namespace detail {
 
 namespace tribble {
 	
+	struct reader_template
+	{
+		template <typename t_cb>
+		using fasta_reader = tribble::fasta_reader <t_cb>;
+
+		template <typename t_cb>
+		using line_reader = tribble::line_reader <t_cb>;
+	};
+	
+	
+	template <template <typename> class t_reader, typename t_cb>
+	void read_from_stream(tribble::file_istream &source_stream, vector_source &vs, t_cb &cb)
+	{
+		source_stream.seekg(0);
+		t_reader <t_cb> reader;
+		reader.read_from_stream(source_stream, vs, cb);
+	}
+	
+	
 	void read_input(
 		tribble::file_istream &source_stream,
 		enum_source_format const source_format,
 		tribble::string_vector_type &strings,
+		char_map_type &comp2char,
+		char_map_type &char2comp,
 		tribble::trie_type &trie,
 		tribble::string_map_type &strings_by_state,
 		tribble::state_map_type &states_by_string
 	)
 	{
+		{
+			char_map_type comp2char_temp(256, 255);
+			char_map_type char2comp_temp(256, 255);
+			
+			using std::swap;
+			swap(comp2char, comp2char_temp);
+			swap(char2comp, char2comp_temp);
+		}
+		
 		// Read the sequence from input and create the index in the callback.
 		vector_source vs(1, false);
-		detail::create_index_cb cb(strings, trie, strings_by_state, states_by_string);
+		detail::map_alphabet_cb map_cb(char2comp, comp2char);
+		detail::create_index_cb index_cb(strings, trie, strings_by_state, states_by_string);
 
+		std::cerr << std::endl;
 		if (source_format_arg_FASTA == source_format)
 		{
-			fasta_reader <detail::create_index_cb> reader;
-			reader.read_from_stream(source_stream, vs, cb);
+			read_from_stream <reader_template::fasta_reader>(source_stream, vs, map_cb);
+			read_from_stream <reader_template::fasta_reader>(source_stream, vs, index_cb);
 		}
 		else if (source_format_arg_text == source_format)
 		{
-			line_reader <detail::create_index_cb> reader;
-			reader.read_from_stream(source_stream, vs, cb);
+			read_from_stream <reader_template::line_reader>(source_stream, vs, map_cb);
+			read_from_stream <reader_template::line_reader>(source_stream, vs, index_cb);
 		}
 		else
 		{

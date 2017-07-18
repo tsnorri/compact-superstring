@@ -63,6 +63,7 @@ namespace tribble {
 	typedef std::vector <trie_type::state_ptr_type>						state_map_type;
 	typedef std::vector <std::size_t>									index_vector_type;
 	typedef std::vector <index_vector_type>								index_vector_map_type;
+	typedef std::vector <uint8_t>										char_map_type;
 	
 	struct index_list
 	{

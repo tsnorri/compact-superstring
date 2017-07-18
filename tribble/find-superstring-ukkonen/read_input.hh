@@ -30,6 +30,8 @@ namespace tribble {
 		tribble::file_istream &source_stream,
 		enum_source_format const source_format,
 		tribble::string_vector_type &strings,
+		char_map_type &comp2char,
+		char_map_type &char2comp,
 		tribble::trie_type &trie,
 		tribble::string_map_type &strings_by_state,
 		tribble::state_map_type &states_by_string

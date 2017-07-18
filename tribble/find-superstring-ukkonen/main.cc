@@ -46,6 +46,9 @@ int main(int argc, char **argv)
 	
 	tribble::file_istream source_stream;
 	
+	tribble::char_map_type char2comp;
+	tribble::char_map_type comp2char;
+	
 	{
 		tribble::timer timer;
 		std::cerr << "Reading the sequences…" << std::flush;
@@ -56,6 +59,8 @@ int main(int argc, char **argv)
 			source_stream,
 			args_info.source_format_arg,
 			strings,
+			char2comp,
+			comp2char,
 			trie,
 			strings_by_state,
 			states_by_string
