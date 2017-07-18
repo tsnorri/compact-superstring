@@ -24,7 +24,7 @@ namespace tribble { namespace detail {
 	class create_index_cb {
 		
 	protected:
-		string_list_type	*m_strings{nullptr};
+		string_vector_type	*m_strings{nullptr};
 		trie_type			*m_trie{nullptr};
 		string_map_type		*m_strings_by_state{nullptr};
 		state_map_type		*m_states_by_string{nullptr};
@@ -33,7 +33,7 @@ namespace tribble { namespace detail {
 		
 	public:
 		create_index_cb(
-			string_list_type &strings,
+			string_vector_type &strings,
 			trie_type &trie,
 			string_map_type &strings_by_state,
 			state_map_type &states_by_string
@@ -106,7 +106,7 @@ namespace tribble {
 	void read_input(
 		tribble::file_istream &source_stream,
 		enum_source_format const source_format,
-		tribble::string_list_type &strings,
+		tribble::string_vector_type &strings,
 		tribble::trie_type &trie,
 		tribble::string_map_type &strings_by_state,
 		tribble::state_map_type &states_by_string

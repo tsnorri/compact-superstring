@@ -29,7 +29,7 @@ namespace tribble {
 		string_map_type const &strings_by_state,
 		state_map_type const &states_by_string,
 		next_string_map_type &dst,
-		index_list_type &start_positions
+		index_vector_type &start_positions
 	);
 }
 

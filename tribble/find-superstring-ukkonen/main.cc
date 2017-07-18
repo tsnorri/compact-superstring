@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 	tribble::trie_type trie;
 	trie.remove_substrings();
 	
-	tribble::string_list_type strings;
+	tribble::string_vector_type strings;
 	tribble::string_map_type strings_by_state;
 	tribble::state_map_type states_by_string;
 	
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 	std::size_t const string_count(trie.num_keywords());
 	
 	tribble::next_string_map_type links(string_count);
-	tribble::index_list_type start_positions;
+	tribble::index_vector_type start_positions;
 	
 	{
 		tribble::timer timer;

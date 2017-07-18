@@ -17,7 +17,9 @@
 
 #include <aho_corasick/aho_corasick.hpp>
 #include <deque>
+#include <list>
 #include <string>
+#include <tribble/linked_list.hh>
 #include <vector>
 #include <unordered_map>
 
@@ -56,15 +58,35 @@ namespace tribble {
 	
 	typedef aho_corasick::basic_trie <char>								trie_type;
 	typedef std::string													string_type;
-	typedef std::vector <string_type>									string_list_type;
+	typedef std::vector <string_type>									string_vector_type;
 	typedef std::unordered_map <trie_type::state_ptr_type, std::size_t>	string_map_type;
 	typedef std::vector <trie_type::state_ptr_type>						state_map_type;
-	typedef std::vector <std::size_t>									index_list_type;
-	typedef std::deque <std::size_t>									index_queue_type;
-	typedef std::vector <index_list_type>								index_list_map_type;
-	typedef std::vector <index_queue_type>								index_queue_map_type;
+	typedef std::vector <std::size_t>									index_vector_type;
+	typedef std::vector <index_vector_type>								index_vector_map_type;
+	
+	struct index_list
+	{
+		typedef std::size_t value_type;
+		
+		std::vector <value_type>	values;
+		linked_list					indices;
+		
+		index_list():
+			values(),
+			indices(0, CHAR_BIT * sizeof(value_type))
+		{
+		}
+		
+		index_list(std::size_t const count):
+			values(count),
+			indices(count, CHAR_BIT * sizeof(value_type))
+		{
+		}
+	};
+	typedef std::vector <std::list <index_list>>						index_ll_map_type;
+			
 	typedef std::deque <trie_type::state_ptr_type>						state_ptr_queue_type;
-	typedef std::vector <trie_type::state_ptr_type>						state_ptr_list_type;
+	typedef std::vector <trie_type::state_ptr_type>						state_ptr_vector_type;
 	typedef std::vector <next_string>									next_string_map_type;
 	
 	

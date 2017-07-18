@@ -27,9 +27,9 @@ namespace tribble {
 
 	// Create L(s) for each state.
 	void fill_l_lists(
-		state_ptr_list_type const &final_states,
+		state_ptr_vector_type const &final_states,
 		string_map_type const &strings_by_state,
-		index_list_map_type &dst
+		index_vector_map_type &dst
 	)
 	{
 		timer timer;
@@ -61,7 +61,7 @@ namespace tribble {
 	// Helper for get_states_in_reverse_bfs_order.
 	void handle_state(
 		trie_type::state_ptr_type state,
-		state_ptr_list_type &dst,
+		state_ptr_vector_type &dst,
 		state_ptr_queue_type &q,
 		sdsl::bit_vector &processed_states
 	)
@@ -97,8 +97,8 @@ namespace tribble {
 	// Fill a queue of states in reverse BFS order.
 	void get_states_in_reverse_bfs_order(
 		trie_type const &trie,
-		state_ptr_list_type const &final_states,
-		state_ptr_list_type &dst
+		state_ptr_vector_type const &final_states,
+		state_ptr_vector_type &dst
 	)
 	{
 		sdsl::bit_vector processed_states(trie.num_states(), 0);
@@ -135,7 +135,7 @@ namespace tribble {
 		string_map_type const &strings_by_state,
 		state_map_type const &states_by_string,
 		next_string_map_type &dst,
-		index_list_type &start_positions
+		index_vector_type &start_positions
 	)
 	{
 		std::cerr << std::endl;
@@ -152,7 +152,7 @@ namespace tribble {
 			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
 		}
 	
-		state_ptr_list_type final_states;
+		state_ptr_vector_type final_states;
 		{
 			timer timer;
 			std::cerr << "  Listing final states in BFS order…" << std::flush;
@@ -165,7 +165,7 @@ namespace tribble {
 		// Available after calling get_final_states_in_bfs_order.
 		auto const state_count(trie.num_states());
 		
-		state_ptr_list_type all_states_rev_bfs;
+		state_ptr_vector_type all_states_rev_bfs;
 		{
 			timer timer;
 			std::cerr << "  Listing all states in reverse BFS order…" << std::flush;
@@ -175,7 +175,7 @@ namespace tribble {
 			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
 		}
 	
-		index_list_map_type l_map(state_count);
+		index_vector_map_type l_map(state_count);
 		fill_l_lists(final_states, strings_by_state, l_map);
 		
 		if (DEBUGGING_OUTPUT)
@@ -193,8 +193,8 @@ namespace tribble {
 		}
 	
 		// Initial values for P(s), FIRST and LAST (1)
-		index_queue_map_type p_map(state_count);
-		index_list_type first, last;
+		index_ll_map_type p_map(state_count);
+		index_vector_type first, last;
 		first.resize(string_count);
 		last.resize(string_count);
 		{
@@ -208,7 +208,12 @@ namespace tribble {
 				auto const string_idx(it->second);
 				auto const failure_state_ptr(state_ptr->failure());
 				auto const failure_state_idx(failure_state_ptr->index());
-				p_map[failure_state_idx].push_back(string_idx);
+				
+				// Add string_idx.
+				auto &list(p_map[failure_state_idx]);
+				if (list.empty())
+					list.emplace_front();
+				list.front().values.push_back(string_idx);
 		
 				first[string_idx] = string_idx;
 				last[string_idx] = string_idx;
@@ -217,6 +222,17 @@ namespace tribble {
 				if (0 == i % 10000)
 					std::cerr << ' ' << i << std::flush;
 			}
+			
+			for (auto &list : p_map)
+			{
+				assert(list.size() < 2);
+				if (list.size())
+				{
+					auto &front(list.front());
+					front.indices.resize(front.values.size(), CHAR_BIT * sizeof(std::size_t));
+				}
+			}
+			
 			timer.stop();
 			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
 		}
@@ -230,73 +246,83 @@ namespace tribble {
 			for (auto const state_ptr : all_states_rev_bfs)
 			{
 				auto state_idx(state_ptr->index());
-				auto &p_queue(p_map[state_idx]);
+				auto &p_ll(p_map[state_idx]);
 				
-				// (4)
-				if (p_queue.size())
+				for (auto &p_list : p_ll)
 				{
-					// (5) Get string indices by state.
-					auto const &l_list(l_map[state_idx]);
-					for (auto const string_idx : l_list)
+					// (4)
+					if (p_list.indices.size())
 					{
-						if (DEBUGGING_OUTPUT)
+						// (5) Get string indices by state.
+						auto const &l_list(l_map[state_idx]);
+						for (auto const string_idx : l_list)
 						{
-							std::cerr << "First: ";
-							std::cerr << boost::algorithm::join(first | boost::adaptors::transformed(static_cast <std::string(*)(size_t)>(std::to_string)), ", ") << std::endl;
-						
-							std::cerr << "Last: ";
-							std::cerr << boost::algorithm::join(last | boost::adaptors::transformed(static_cast <std::string(*)(size_t)>(std::to_string)), ", ") << std::endl;
-						}
-
-						if (0 == p_queue.size())
-							break;
-
-						if (processed_strings[string_idx])
-							continue;
-						
-						// (6), (7), (8)
-						auto ii(p_queue.front());
-						if (first[ii] == string_idx)
-						{
-							if (1 == p_queue.size())
-								continue;
-		
-							p_queue.pop_front();
-							p_queue.push_back(ii);
-							ii = p_queue.front();
-						}
-						assert(p_queue.size());
-						p_queue.pop_front(); // (11)
-						
-						//if (left_available[ii] && right_available[string_idx])
-						{
-							//left_available[ii] = false;
-							right_available[string_idx] = false;
-		
 							if (DEBUGGING_OUTPUT)
-								std::cerr << "Overlap: " << ii << ", " << string_idx << " length: " << state_ptr->get_depth() << std::endl;
+							{
+								std::cerr << "First: ";
+								std::cerr << boost::algorithm::join(first | boost::adaptors::transformed(static_cast <std::string(*)(size_t)>(std::to_string)), ", ") << std::endl;
+						
+								std::cerr << "Last: ";
+								std::cerr << boost::algorithm::join(last | boost::adaptors::transformed(static_cast <std::string(*)(size_t)>(std::to_string)), ", ") << std::endl;
+							}
 							
-							// Add to H.
-							next_string ns(string_idx, state_ptr->get_depth());
-							dst[ii] = ns;
+							if (0 == p_list.indices.size())
+								break;
+							
+							if (processed_strings[string_idx])
+								continue;
+							
+							p_list.indices.reset();
+						
+							// (6), (7), (8)
+							auto const i_idx(p_list.indices.current());
+							auto ii(p_list.values[i_idx]);
+							if (first[ii] == string_idx)
+							{
+								if (1 == p_list.indices.size())
+									continue; // Continue iterating l_list.
+								
+								p_list.indices.advance();
+								auto const i_idx(p_list.indices.current());
+								ii = p_list.values[i_idx];
+							}
+							assert(!p_list.indices.at_end());
+							p_list.indices.advance_and_mark_skipped(); // (11)
+						
+							//if (left_available[ii] && right_available[string_idx])
+							{
+								//left_available[ii] = false;
+								right_available[string_idx] = false;
+								
+								if (DEBUGGING_OUTPUT)
+									std::cerr << "Overlap: " << ii << ", " << string_idx << " length: " << state_ptr->get_depth() << std::endl;
+							
+								// Add to H.
+								next_string ns(string_idx, state_ptr->get_depth());
+								dst[ii] = ns;
+							}
+							
+							// (10)
+							processed_strings[string_idx] = true;
+							
+							// (12), (13)
+							first[last[string_idx]] = first[ii];
+							last[first[ii]] = last[string_idx];
 						}
-		
-						// (10)
-						processed_strings[string_idx] = true;
-		
-						// (12), (13)
-						first[last[string_idx]] = first[ii];
-						last[first[ii]] = last[string_idx];
 					}
-		
+				}
+				
+				// Remove empty elements.
+				p_ll.remove_if([](index_list &il){ return 0 == il.indices.size(); });
+				if (!p_ll.empty())
+				{
 					// (14)
 					auto failure_state_ptr(state_ptr->failure() ?: trie.get_root());
 					auto const failure_state_idx(failure_state_ptr->index());
-					auto &p_failure_queue(p_map[failure_state_idx]);
-					for (auto const string_idx : p_queue)
-						p_failure_queue.push_back(string_idx);
+					auto &p_failure_ll(p_map[failure_state_idx]);
+					p_failure_ll.splice(p_failure_ll.cend(), p_ll);
 				}
-
+				
 				if (0 == state_idx % 10000)
 					std::cerr << ' ' << state_idx << std::flush;
 			}
