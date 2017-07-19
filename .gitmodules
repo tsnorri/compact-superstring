@@ -10,3 +10,6 @@
 [submodule "lib/aho_corasick"]
 	path = lib/aho_corasick
 	url = https://github.com/tsnorri/aho_corasick.git
+[submodule "lib/libpwq"]
+	path = lib/libpwq
+	url = https://github.com/mheily/libpwq.git
