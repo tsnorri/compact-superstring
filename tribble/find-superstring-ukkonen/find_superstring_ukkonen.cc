@@ -19,7 +19,10 @@
 
 
 namespace tribble {
-
+	
+	std::size_t transition_map_base::s_sigma = 0;
+	
+	
 	bool insert(
 		trie_type &trie,
 		string_map_type &strings_by_state,

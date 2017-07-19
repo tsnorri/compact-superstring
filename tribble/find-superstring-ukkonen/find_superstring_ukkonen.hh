@@ -14,6 +14,8 @@
  along with this program.  If not, see http://www.gnu.org/licenses/ .
  */
 
+#ifndef TRIBBLE_SUPERSTRING_FIND_SUPERSTRING_UKKONEN_HH
+#define TRIBBLE_SUPERSTRING_FIND_SUPERSTRING_UKKONEN_HH
 
 #include <aho_corasick/aho_corasick.hpp>
 #include <deque>
@@ -22,10 +24,8 @@
 #include <tribble/linked_list.hh>
 #include <vector>
 #include <unordered_map>
+#include "transition_map.hh"
 
-
-#ifndef TRIBBLE_SUPERSTRING_FIND_SUPERSTRING_UKKONEN_HH
-#define TRIBBLE_SUPERSTRING_FIND_SUPERSTRING_UKKONEN_HH
 
 #ifdef NDEBUG
 #	define TRIBBLE_ASSERTIONS_ENABLED	(0)
@@ -56,7 +56,7 @@ namespace tribble {
 	};
 	
 	
-	typedef aho_corasick::basic_trie <char>								trie_type;
+	typedef aho_corasick::basic_trie <char, transition_map>				trie_type;
 	typedef std::string													string_type;
 	typedef std::vector <string_type>									string_vector_type;
 	typedef std::unordered_map <trie_type::state_ptr_type, std::size_t>	string_map_type;
