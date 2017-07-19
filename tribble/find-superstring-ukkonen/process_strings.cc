@@ -151,32 +151,15 @@ namespace tribble {
 			timer.stop();
 			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
 		}
-	
-		state_ptr_vector_type final_states;
-		{
-			timer timer;
-			std::cerr << "  Listing final states in BFS order…" << std::flush;
-			final_states.reserve(string_count);
-			trie.get_final_states_in_bfs_order(final_states);
-			timer.stop();
-			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
-		}
-	
-		// Available after calling get_final_states_in_bfs_order.
-		auto const state_count(trie.num_states());
 		
-		state_ptr_vector_type all_states_rev_bfs;
-		{
-			timer timer;
-			std::cerr << "  Listing all states in reverse BFS order…" << std::flush;
-			all_states_rev_bfs.reserve(trie.num_states());
-			get_states_in_reverse_bfs_order(trie, final_states, all_states_rev_bfs);
-			timer.stop();
-			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
-		}
+		// Available after calling check_postprocess.
+		auto const state_count(trie.num_states());
+	
+		state_ptr_vector_type const &final_states_bfs(trie.get_final_states_in_bfs_order());
+		state_ptr_vector_type const &all_states_bfs(trie.get_states_in_bfs_order());
 	
 		index_vector_map_type l_map(state_count);
-		fill_l_lists(final_states, strings_by_state, l_map);
+		fill_l_lists(final_states_bfs, strings_by_state, l_map);
 		
 		if (DEBUGGING_OUTPUT)
 		{
@@ -199,9 +182,9 @@ namespace tribble {
 		last.resize(string_count);
 		{
 			timer timer;
-			std::cerr << "  Handing final states…" << std::flush;
+			std::cerr << "  Handling the final states…" << std::flush;
 			std::size_t i(0);
-			for (auto const state_ptr : final_states)
+			for (auto const state_ptr : final_states_bfs)
 			{
 				auto const it(strings_by_state.find(state_ptr));
 				assert(strings_by_state.cend() != it);
@@ -243,7 +226,7 @@ namespace tribble {
 		{
 			timer timer;
 			std::cerr << "  Handling all states:" << std::flush;
-			for (auto const state_ptr : all_states_rev_bfs)
+			for (auto const state_ptr : boost::adaptors::reverse(all_states_bfs))
 			{
 				auto state_idx(state_ptr->index());
 				auto &p_ll(p_map[state_idx]);

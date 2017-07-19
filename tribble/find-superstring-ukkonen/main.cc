@@ -39,6 +39,7 @@ int main(int argc, char **argv)
 
 	tribble::trie_type trie;
 	trie.remove_substrings();
+	trie.store_states_in_bfs_order();
 	
 	tribble::string_vector_type strings;
 	tribble::string_map_type strings_by_state;
