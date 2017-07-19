@@ -103,13 +103,20 @@ int main(int argc, char **argv)
 		
 		std::size_t i(0);
 		for (auto const &str : strings)
-			std::cerr << i++ << ": " << str << std::endl;
+		{
+			std::cerr << i++ << ": ";
+			for (auto const c : str)
+				std::cerr << comp2char[c];
+			std::cerr << std::endl;
+		}
 	}
-
+	
 	// Output the superstring.
 	for (auto const idx : start_positions)
 	{
-		std::cout << strings[idx];
+		for (auto const c : strings[idx])
+			std::cout << comp2char[c];
+		
 		if (DEBUGGING_OUTPUT)
 			std::cout << ' ';
 
@@ -121,7 +128,10 @@ int main(int argc, char **argv)
 			if (tribble::next_string::max_index == next_idx)
 				break;
 			
-			std::cout << (strings[next_idx].data() + ns.overlap_length);
+			auto const &str(strings[next_idx]);
+			for (auto it(str.cbegin() + ns.overlap_length), end(str.cend()); it != end; ++it)
+				std::cout << comp2char[*it];
+			
 			if (DEBUGGING_OUTPUT)
 				std::cout << ' ';
 		}

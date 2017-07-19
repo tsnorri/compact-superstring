@@ -44,10 +44,12 @@ namespace tribble { namespace detail {
 		
 		std::size_t const sigma() { return m_charno; }
 		
-		void process_sequence(vector_source::vector_type &seq)
+		void process_sequence(vector_source::vector_type &seq, std::size_t const seq_length)
 		{
-			for (auto const c : seq)
+			auto const begin(seq.begin());
+			for (auto it(begin), end(begin + seq_length); it != end; ++it)
 			{
+				auto const c(*it);
 				auto &ref_1((*m_char2comp)[c]);
 				
 				// If a character number has already been assigned, skip.
@@ -74,7 +76,7 @@ namespace tribble { namespace detail {
 			vector_source &vector_source
 		)
 		{
-			process_sequence(*seq);
+			process_sequence(*seq, seq_length);
 			vector_source.put_vector(seq);
 
 			++m_seqno;
@@ -90,7 +92,7 @@ namespace tribble { namespace detail {
 			vector_source &vector_source
 		)
 		{
-			process_sequence(*seq);
+			process_sequence(*seq, seq_length);
 			vector_source.put_vector(seq);
 
 			if (0 == lineno % 10000)
@@ -226,6 +228,7 @@ namespace tribble {
 	template <template <typename> class t_reader, typename t_cb>
 	void read_from_stream(tribble::file_istream &source_stream, vector_source &vs, t_cb &cb)
 	{
+		source_stream.clear();
 		source_stream.seekg(0);
 		t_reader <t_cb> reader;
 		reader.read_from_stream(source_stream, vs, cb);
@@ -236,8 +239,8 @@ namespace tribble {
 		tribble::file_istream &source_stream,
 		enum_source_format const source_format,
 		tribble::string_vector_type &strings,
-		char_map_type &comp2char,
 		char_map_type &char2comp,
+		char_map_type &comp2char,
 		tribble::trie_type &trie,
 		tribble::string_map_type &strings_by_state,
 		tribble::state_map_type &states_by_string
