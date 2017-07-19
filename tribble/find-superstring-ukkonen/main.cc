@@ -24,6 +24,43 @@
 #include "process_strings.hh"
 
 
+void output_superstring(
+	std::ostream &stream,
+	tribble::string_vector_type const &strings,
+	tribble::index_vector_type const &start_positions,
+	tribble::next_string_map_type const &links,
+	tribble::char_map_type const &comp2char
+)
+{
+	// Output the superstring.
+	for (auto const idx : start_positions)
+	{
+		for (auto const c : strings[idx])
+			stream << comp2char[c];
+		
+		if (DEBUGGING_OUTPUT)
+			stream << ' ';
+
+		auto next_idx(idx);
+		while (true)
+		{
+			auto const &ns(links[next_idx]);
+			next_idx = ns.index;
+			if (tribble::next_string::max_index == next_idx)
+				break;
+			
+			auto const &str(strings[next_idx]);
+			for (auto it(str.cbegin() + ns.overlap_length), end(str.cend()); it != end; ++it)
+				stream << comp2char[*it];
+			
+			if (DEBUGGING_OUTPUT)
+				stream << ' ';
+		}
+	}
+	stream << std::endl;
+}
+		
+
 int main(int argc, char **argv)
 {
 	std::cerr << "Assertions have been " << (TRIBBLE_ASSERTIONS_ENABLED ? "enabled" : "disabled") << '.' << std::endl;
@@ -32,17 +69,18 @@ int main(int argc, char **argv)
 	if (0 != cmdline_parser(argc, argv, &args_info))
 		exit(EXIT_FAILURE);
 	
-	bool const output_is_terminal(isatty(fileno(stdin)));
-	
 	std::ios_base::sync_with_stdio(false);	// Don't use C style IO after calling cmdline_parser.
 	std::cin.tie(nullptr);					// We don't require any input from the user.
+
+	tribble::file_ostream os;
+	if (args_info.output_file_given)
+		tribble::open_file_for_writing(args_info.output_file_arg, os);
 
 	tribble::trie_type trie;
 	trie.remove_substrings();
 	trie.store_states_in_bfs_order();
 	
 	tribble::string_vector_type strings;
-	tribble::string_map_type strings_by_state;
 	tribble::state_map_type states_by_string;
 	
 	tribble::file_istream source_stream;
@@ -63,7 +101,6 @@ int main(int argc, char **argv)
 			char2comp,
 			comp2char,
 			trie,
-			strings_by_state,
 			states_by_string
 		);
 		
@@ -80,10 +117,16 @@ int main(int argc, char **argv)
 		tribble::timer timer;
 		std::cerr << "Processing the strings…" << std::flush;
 
-		tribble::process_strings(trie, strings_by_state, states_by_string, links, start_positions);
+		tribble::process_strings(trie, states_by_string, links, start_positions);
 		
 		timer.stop();
 		std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
+	}
+
+	if (0 == start_positions.size())
+	{
+		std::cerr << "No start positions." << std::endl;
+		abort();
 	}
 	
 	if (DEBUGGING_OUTPUT)
@@ -111,33 +154,8 @@ int main(int argc, char **argv)
 			std::cerr << std::endl;
 		}
 	}
-	
-	// Output the superstring.
-	for (auto const idx : start_positions)
-	{
-		for (auto const c : strings[idx])
-			std::cout << comp2char[c];
-		
-		if (DEBUGGING_OUTPUT)
-			std::cout << ' ';
 
-		auto next_idx(idx);
-		while (true)
-		{
-			auto const &ns(links[next_idx]);
-			next_idx = ns.index;
-			if (tribble::next_string::max_index == next_idx)
-				break;
-			
-			auto const &str(strings[next_idx]);
-			for (auto it(str.cbegin() + ns.overlap_length), end(str.cend()); it != end; ++it)
-				std::cout << comp2char[*it];
-			
-			if (DEBUGGING_OUTPUT)
-				std::cout << ' ';
-		}
-	}
-	std::cout << std::endl;
-		
+	output_superstring(args_info.output_file_given ? os : std::cout, strings, start_positions, links, comp2char);
+	
 	return 0;
 }

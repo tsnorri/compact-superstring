@@ -21,23 +21,4 @@
 namespace tribble {
 	
 	std::size_t transition_map_base::s_sigma = 0;
-	
-	
-	bool insert(
-		trie_type &trie,
-		string_map_type &strings_by_state,
-		string_type const &string,
-		std::size_t const idx
-	)
-	{
-		auto const state_ptr(trie.insert(string));
-		if (state_ptr)
-		{
-			assert(strings_by_state.cend() == strings_by_state.find(state_ptr));
-			strings_by_state[state_ptr] = idx;
-			return true;
-		}
-		
-		return false;
-	}
 }

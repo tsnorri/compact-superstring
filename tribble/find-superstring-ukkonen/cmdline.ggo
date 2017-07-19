@@ -17,6 +17,7 @@ usage	"find-superstring-ukkonen -f source.fa [...]"
 
 option	"source-file"			f	"Specify the location of the source file"										string	typestr = "filename"			required
 option	"source-format"			-	"Specify the source file format (default: FASTA)"	values = "FASTA", "text"	enum	typestr = "format"				optional	default = "FASTA"
+option	"output-file"			o	"Specify the location of the superstring file"									string	typestr = "filename"			optional
 
 text "\n"
 text "Example:

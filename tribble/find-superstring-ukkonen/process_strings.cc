@@ -28,7 +28,6 @@ namespace tribble {
 	// Create L(s) for each state.
 	void fill_l_lists(
 		state_ptr_vector_type const &final_states,
-		string_map_type const &strings_by_state,
 		index_vector_map_type &dst
 	)
 	{
@@ -37,20 +36,17 @@ namespace tribble {
 		std::size_t i(0);
 		for (auto state_ptr : final_states)
 		{
-			auto const it(strings_by_state.find(state_ptr));
-			assert(strings_by_state.cend() != it);
-			auto const string_idx(it->second);
-	
 			while (state_ptr)
 			{
 				auto const state_idx(state_ptr->index());
+				auto const string_idx(state_ptr->string_index());
 				auto &l_list(dst[state_idx]);
 				l_list.push_back(string_idx);
 				state_ptr = state_ptr->parent();
 			}
 
 			++i;
-			if (0 == i % 10000)
+			if (0 == i % TRIBBLE_LOG_INTERVAL)
 				std::cerr << ' ' << i << std::flush;
 		}
 		timer.stop();
@@ -94,45 +90,9 @@ namespace tribble {
 	}
 	
 	
-	// Fill a queue of states in reverse BFS order.
-	void get_states_in_reverse_bfs_order(
-		trie_type const &trie,
-		state_ptr_vector_type const &final_states,
-		state_ptr_vector_type &dst
-	)
-	{
-		sdsl::bit_vector processed_states(trie.num_states(), 0);
-	
-		state_ptr_queue_type q;
-		for (auto state_ptr : boost::adaptors::reverse(final_states))
-		{
-			while (q.size())
-			{
-				auto &other(q.front());
-				if (state_ptr->greater_than_bfs_order(*other))
-					break;
-	
-				// Other is before state_ptr in BFS order.
-				handle_state(other, dst, q, processed_states);
-	
-				q.pop_front();
-			}
-	
-			handle_state(state_ptr, dst, q, processed_states);
-		}
-		
-		while (q.size())
-		{
-			handle_state(q.front(), dst, q, processed_states);
-			q.pop_front();
-		}
-	}
-	
-	
 	// Find the Hamiltonian path as discussed in Ukkonen's paper.
 	void process_strings(
 		trie_type &trie,
-		string_map_type const &strings_by_state,
 		state_map_type const &states_by_string,
 		next_string_map_type &dst,
 		index_vector_type &start_positions
@@ -151,7 +111,7 @@ namespace tribble {
 			timer.stop();
 			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
 		}
-		
+
 		// Available after calling check_postprocess.
 		auto const state_count(trie.num_states());
 	
@@ -159,7 +119,7 @@ namespace tribble {
 		state_ptr_vector_type const &all_states_bfs(trie.get_states_in_bfs_order());
 	
 		index_vector_map_type l_map(state_count);
-		fill_l_lists(final_states_bfs, strings_by_state, l_map);
+		fill_l_lists(final_states_bfs, l_map);
 		
 		if (DEBUGGING_OUTPUT)
 		{
@@ -182,13 +142,11 @@ namespace tribble {
 		last.resize(string_count);
 		{
 			timer timer;
-			std::cerr << "  Handling the final states…" << std::flush;
+			std::cerr << "  Handling the final states (" << final_states_bfs.size() << ")…" << std::flush;
 			std::size_t i(0);
 			for (auto const state_ptr : final_states_bfs)
 			{
-				auto const it(strings_by_state.find(state_ptr));
-				assert(strings_by_state.cend() != it);
-				auto const string_idx(it->second);
+				auto const string_idx(state_ptr->string_index());
 				auto const failure_state_ptr(state_ptr->failure());
 				auto const failure_state_idx(failure_state_ptr->index());
 				
@@ -202,7 +160,7 @@ namespace tribble {
 				last[string_idx] = string_idx;
 
 				++i;
-				if (0 == i % 10000)
+				if (0 == i % TRIBBLE_LOG_INTERVAL)
 					std::cerr << ' ' << i << std::flush;
 			}
 			
@@ -225,17 +183,27 @@ namespace tribble {
 		// Main loop of the algorithm (3)
 		{
 			timer timer;
-			std::cerr << "  Handling all states:" << std::flush;
+			std::cerr << "  Handling all states (" << all_states_bfs.size() << "):" << std::flush;
 			for (auto const state_ptr : boost::adaptors::reverse(all_states_bfs))
 			{
 				auto state_idx(state_ptr->index());
 				auto &p_ll(p_map[state_idx]);
 				
+				if (0 == state_idx % TRIBBLE_LOG_INTERVAL)
+					std::cerr << ' ' << state_idx << std::flush;
+
+				if (TRIBBLE_LOG_INTERVAL <= p_ll.size())
+					std::cerr << " (" << p_ll.size() << ')' << std::flush;
+				
 				for (auto &p_list : p_ll)
 				{
 					// (4)
-					if (p_list.indices.size())
+					auto const list_indices_size(p_list.indices.size());
+					if (list_indices_size)
 					{
+						if (TRIBBLE_LOG_INTERVAL <= list_indices_size)
+							std::cerr << " [" << list_indices_size << ']' << std::flush;
+
 						// (5) Get string indices by state.
 						auto const &l_list(l_map[state_idx]);
 						for (auto const string_idx : l_list)
@@ -272,9 +240,9 @@ namespace tribble {
 							assert(!p_list.indices.at_end());
 							p_list.indices.advance_and_mark_skipped(); // (11)
 						
-							//if (left_available[ii] && right_available[string_idx])
+							if (left_available[ii] && right_available[string_idx])
 							{
-								//left_available[ii] = false;
+								left_available[ii] = false;
 								right_available[string_idx] = false;
 								
 								if (DEBUGGING_OUTPUT)
@@ -305,9 +273,6 @@ namespace tribble {
 					auto &p_failure_ll(p_map[failure_state_idx]);
 					p_failure_ll.splice(p_failure_ll.cend(), p_ll);
 				}
-				
-				if (0 == state_idx % 10000)
-					std::cerr << ' ' << state_idx << std::flush;
 			}
 			timer.stop();
 			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
@@ -316,8 +281,12 @@ namespace tribble {
 		std::size_t i(0);
 		for (auto const val : right_available)
 		{
-			if (val && states_by_string[i]->get_emits().size())
-				start_positions.push_back(i);
+			if (val)
+			{
+				auto const state_ptr(states_by_string[i]);
+				if (state_ptr->get_emits().size())
+					start_positions.push_back(i);
+			}
 			++i;
 		}
 	}

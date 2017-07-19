@@ -33,7 +33,6 @@ namespace tribble {
 		char_map_type &char2comp,
 		char_map_type &comp2char,
 		tribble::trie_type &trie,
-		tribble::string_map_type &strings_by_state,
 		tribble::state_map_type &states_by_string
 	);
 }

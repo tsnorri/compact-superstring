@@ -26,7 +26,6 @@ namespace tribble {
 	
 	void process_strings(
 		trie_type &trie,
-		string_map_type const &strings_by_state,
 		state_map_type const &states_by_string,
 		next_string_map_type &dst,
 		index_vector_type &start_positions

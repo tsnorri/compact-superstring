@@ -80,7 +80,7 @@ namespace tribble { namespace detail {
 			vector_source.put_vector(seq);
 
 			++m_seqno;
-			if (0 == m_seqno % 10000)
+			if (0 == m_seqno % TRIBBLE_LOG_INTERVAL)
 				std::cerr << " " << m_seqno << std::flush;
 		}
 		
@@ -94,8 +94,9 @@ namespace tribble { namespace detail {
 		{
 			process_sequence(*seq, seq_length);
 			vector_source.put_vector(seq);
+			m_seqno = lineno;
 
-			if (0 == lineno % 10000)
+			if (0 == lineno % TRIBBLE_LOG_INTERVAL)
 				std::cerr << " " << lineno << std::flush;
 		}
 		
@@ -112,34 +113,36 @@ namespace tribble { namespace detail {
 			
 			transition_map_base::set_sigma(m_charno);
 		}
+
+		std::size_t seqno() const { return m_seqno; }
 	};
 	
 	
 	class create_index_cb {
 		
 	protected:
-		tribble::timer		m_timer;
-		string_vector_type	*m_strings{nullptr};
-		trie_type			*m_trie{nullptr};
-		string_map_type		*m_strings_by_state{nullptr};
-		state_map_type		*m_states_by_string{nullptr};
-		char_map_type const	*m_char2comp{nullptr};
-		std::size_t			m_idx{0};
-		std::size_t			m_seqno{0};
+		tribble::timer			m_timer;
+		string_vector_type		*m_strings{nullptr};
+		trie_type				*m_trie{nullptr};
+		state_map_type			*m_states_by_string{nullptr};
+		char_map_type const		*m_char2comp{nullptr};
+		map_alphabet_cb const	*m_map_cb{nullptr};
+		std::size_t				m_seqno{0};
+		uint32_t				m_idx{0};
 		
 	public:
 		create_index_cb(
 			string_vector_type &strings,
 			trie_type &trie,
-			string_map_type &strings_by_state,
 			state_map_type &states_by_string,
-			char_map_type const &char2comp
+			char_map_type const &char2comp,
+			map_alphabet_cb const &map_cb
 		):
 			m_strings(&strings),
 			m_trie(&trie),
-			m_strings_by_state(&strings_by_state),
 			m_states_by_string(&states_by_string),
-			m_char2comp(&char2comp)
+			m_char2comp(&char2comp),
+			m_map_cb(&map_cb)
 		{
 		}
 		
@@ -149,8 +152,11 @@ namespace tribble { namespace detail {
 			for (auto &c : str)
 				c = (*m_char2comp)[c];
 				
-			if (insert(*m_trie, *m_strings_by_state, str, m_idx))
+			auto const state_ptr(m_trie->insert(str));
+			if (state_ptr)
 			{
+				state_ptr->set_string_index(m_idx);
+				m_states_by_string->emplace_back(state_ptr);
 				m_strings->emplace_back(std::move(str));
 				++m_idx;
 			}
@@ -169,7 +175,7 @@ namespace tribble { namespace detail {
 			vector_source.put_vector(seq);
 
 			++m_seqno;
-			if (0 == m_seqno % 10000)
+			if (0 == m_seqno % TRIBBLE_LOG_INTERVAL)
 				std::cerr << " " << m_seqno << std::flush;
 		}
 		
@@ -185,7 +191,7 @@ namespace tribble { namespace detail {
 			insert_and_check(str);
 			vector_source.put_vector(seq);
 
-			if (0 == lineno % 10000)
+			if (0 == lineno % TRIBBLE_LOG_INTERVAL)
 				std::cerr << " " << lineno << std::flush;
 		}
 		
@@ -194,17 +200,11 @@ namespace tribble { namespace detail {
 			m_timer.start();
 			std::cerr << "  Inserting the sequences…" << std::flush;
 			m_trie->reset_root();
+			m_states_by_string->reserve(m_map_cb->seqno());
 		}
 		
 		void finish()
 		{
-			m_states_by_string->resize(m_strings_by_state->size());
-			for (auto const &kv : *m_strings_by_state)
-			{
-				assert(nullptr == (*m_states_by_string)[kv.second]);
-				(*m_states_by_string)[kv.second] = kv.first;
-			}
-			
 			m_timer.stop();
 			std::cerr << " finished in " << m_timer.ms_elapsed() << " ms." << std::endl;
 		}
@@ -242,7 +242,6 @@ namespace tribble {
 		char_map_type &char2comp,
 		char_map_type &comp2char,
 		tribble::trie_type &trie,
-		tribble::string_map_type &strings_by_state,
 		tribble::state_map_type &states_by_string
 	)
 	{
@@ -258,7 +257,7 @@ namespace tribble {
 		// Read the sequence from input and create the index in the callback.
 		vector_source vs(1, false);
 		detail::map_alphabet_cb map_cb(char2comp, comp2char);
-		detail::create_index_cb index_cb(strings, trie, strings_by_state, states_by_string, char2comp);
+		detail::create_index_cb index_cb(strings, trie, states_by_string, char2comp, map_cb);
 
 		std::cerr << std::endl;
 		if (source_format_arg_FASTA == source_format)

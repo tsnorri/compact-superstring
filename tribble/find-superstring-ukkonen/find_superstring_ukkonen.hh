@@ -18,6 +18,7 @@
 #define TRIBBLE_SUPERSTRING_FIND_SUPERSTRING_UKKONEN_HH
 
 #include <aho_corasick/aho_corasick.hpp>
+#include <climits>
 #include <deque>
 #include <list>
 #include <string>
@@ -36,6 +37,8 @@
 #ifndef DEBUGGING_OUTPUT
 #	define DEBUGGING_OUTPUT 0
 #endif
+
+#define TRIBBLE_LOG_INTERVAL 100000
 
 
 namespace tribble {
@@ -59,7 +62,6 @@ namespace tribble {
 	typedef aho_corasick::basic_trie <char, transition_map>				trie_type;
 	typedef std::string													string_type;
 	typedef std::vector <string_type>									string_vector_type;
-	typedef std::unordered_map <trie_type::state_ptr_type, std::size_t>	string_map_type;
 	typedef std::vector <trie_type::state_ptr_type>						state_map_type;
 	typedef std::vector <std::size_t>									index_vector_type;
 	typedef std::vector <index_vector_type>								index_vector_map_type;
@@ -89,15 +91,6 @@ namespace tribble {
 	typedef std::deque <trie_type::state_ptr_type>						state_ptr_queue_type;
 	typedef std::vector <trie_type::state_ptr_type>						state_ptr_vector_type;
 	typedef std::vector <next_string>									next_string_map_type;
-	
-	
-	// Insert a string into the trie.
-	bool insert(
-		trie_type &trie,
-		string_map_type &strings_by_state,
-		string_type const &string,
-		std::size_t const idx
-	);
 }
 
 #endif
