@@ -181,6 +181,11 @@ namespace {
 			handle_sequence_(seq, seq_length, vs, cb);
 		}
 
+
+		void start()
+		{
+		}
+
 		
 		void finish()
 		{
