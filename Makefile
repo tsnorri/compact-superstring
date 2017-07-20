@@ -6,6 +6,7 @@ PROJECT_DIR = tribble
 DEPENDENCIES = lib/sdsl/build/lib/libsdsl.a
 ifeq ($(shell uname -s),Linux)
 	DEPENDENCIES    +=  lib/libdispatch/libdispatch-build/src/libdispatch.a
+	DEPENDENCIES    +=  lib/libpwq/libpwq-build/libpthread_workqueue.a
 endif
 
 
@@ -48,3 +49,13 @@ lib/libdispatch/libdispatch-build/src/libdispatch.a:
 		-DPTHREAD_WORKQUEUE_LIBRARIES="" \
 		-DBLOCKS_RUNTIME_LIBRARIES=""
 	$(MAKE) -C lib/libdispatch/libdispatch-build VERBOSE=1
+
+lib/libpwq/libpwq-build/libpthread_workqueue.a:
+	rm -rf lib/libpwq/libpwq-build && \
+	cd lib/libpwq && \
+	mkdir libpwq-build && \
+	cd libpwq-build && \
+	CC="$(CC)" \
+	CXX="$(CXX)" \
+	cmake -DSTATIC_WORKQUEUE=ON ..
+	$(MAKE) -C lib/libpwq/libpwq-build VERBOSE=1
