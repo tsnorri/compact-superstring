@@ -49,7 +49,7 @@ namespace {
 
 		// Use O(m log m) bits for a linked list.
 		std::size_t const bits_for_m(1 + sdsl::bits::hi(1 + string_count));
-		tribble::linked_list index_list(1 + string_count, bits_for_m);
+		tribble::linked_list index_list(string_count, bits_for_m);
 
 		std::size_t cl(0); // Current discarded prefix length w.r.t. the longest substring.
 		while (index_list.reset() && cl < max_length)
@@ -130,6 +130,7 @@ namespace tribble {
 	void find_suffixes(
 		std::istream &index_stream,
 		std::istream &strings_stream,
+		std::ostream &os,
 		find_superstring_match_callback &cb
 	)
 	{
@@ -251,7 +252,7 @@ namespace tribble {
 			auto const event(sdsl::memory_monitor::event("Build superstring"));
 			timer timer;
 
-			cb.build_final_superstring(std::cout);
+			cb.build_final_superstring(os);
 			
 			timer.stop();
 			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;

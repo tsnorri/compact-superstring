@@ -128,13 +128,17 @@ int main(int argc, char **argv)
 	{
 		tribble::file_istream index_stream;
 		tribble::file_istream strings_stream;
+		tribble::file_ostream output_stream;
 		
 		tribble::open_file_for_reading(args_info.index_file_arg, index_stream);
 		tribble::open_file_for_reading(args_info.sorted_strings_file_arg, strings_stream);
+
+		if (args_info.output_file_given)
+			tribble::open_file_for_writing(args_info.output_file_arg, output_stream);
 		
 		tribble::Superstring_callback cb;
 		//tribble::find_superstring_match_dummy_callback cb;
-		tribble::find_suffixes(index_stream, strings_stream, cb);
+		tribble::find_suffixes(index_stream, strings_stream, args_info.output_file_given ? output_stream : std::cout, cb);
 	}
 	else if (args_info.index_visualization_given)
 	{

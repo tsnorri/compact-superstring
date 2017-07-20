@@ -174,6 +174,7 @@ namespace tribble {
 	void find_suffixes(
 		std::istream &index_stream,
 		std::istream &strings_stream,
+		std::ostream &output_stream,
 		find_superstring_match_callback &cb
 	);
 	void visualize(std::istream &index_stream, std::ostream &memory_chart_stream);

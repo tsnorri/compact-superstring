@@ -25,6 +25,7 @@ modeoption	"source-format"			-	"Specify the source file format (default: FASTA)"
 modeoption	"sentinel-character"	-	"Specify the number of the string separator character to be used"				short	typestr = "number"		mode = "Create index"			optional
 
 modeoption	"find-superstring"		F	"Find the shortest common superstring"																			mode = "Find superstring"		required
+modeoption	"output-file"			o	"Specify the location of the output file"										string	typestr = "filename"	mode = "Find superstring"		optional
 
 modeoption	"index-visualization"	I	"Visualize memory usage"																						mode = "Index visualization"	required
 modeoption	"memory-chart-file"		c	"Specify the location of the output HTML file"									string	typestr = "filename"	mode = "Index visualization"	required
