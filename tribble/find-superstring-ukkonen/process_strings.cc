@@ -36,10 +36,10 @@ namespace tribble {
 		std::size_t i(0);
 		for (auto state_ptr : final_states)
 		{
+			auto const string_idx(state_ptr->string_index());
 			while (state_ptr)
 			{
 				auto const state_idx(state_ptr->index());
-				auto const string_idx(state_ptr->string_index());
 				auto &l_list(dst[state_idx]);
 				l_list.push_back(string_idx);
 				state_ptr = state_ptr->parent();
