@@ -7,9 +7,9 @@ LDFLAGS			+=	$(BOOST_IOSTREAMS_LIB) \
 					../src/libtribble.a
 ifeq ($(shell uname -s),Linux)
 	LDFLAGS		+=  ../../lib/libdispatch/libdispatch-build/src/libdispatch.a \
-					-lkqueue \
-					-lpthread \
-					-lpthread_workqueue
+					/usr/lib/x86_64-linux-gnu/libkqueue.a \
+					-pthread \
+					../../lib/libpwq/libpwq-build/libpthread_workqueue.a
 endif
 
 # CPPFLAGS		+=	-DDEBUGGING_OUTPUT
@@ -25,3 +25,5 @@ clean:
 
 $(TARGET): $(OBJECTS)
 	$(CXX) -o $(TARGET) $(OBJECTS) $(LDFLAGS)
+
+main.cc : cmdline.c

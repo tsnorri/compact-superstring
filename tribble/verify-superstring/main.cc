@@ -15,6 +15,12 @@
  */
 
 #include <cstdlib>
+#include <tribble/io.hh>
+
+#ifdef __linux__
+#include <pthread_workqueue.h>
+#endif
+
 #include "cmdline.h"
 #include "verify_superstring.hh"
 
@@ -26,11 +32,24 @@ int main(int argc, char **argv)
 	if (0 != cmdline_parser(argc, argv, &args_info))
 		exit(EXIT_FAILURE);
 
+	std::ios_base::sync_with_stdio(false);	// Don't use C style IO after calling cmdline_parser.
+	std::cin.tie(nullptr);					// We don't require any input from the user.
+	
+	// libdispatch on macOS does not need pthread_workqueue.
+#ifdef __linux__
+	pthread_workqueue_init_np();
+#endif
+
 	if (args_info.create_index_given)
 	{
+		tribble::file_ostream index_stream;
+		tribble::open_file_for_writing(args_info.index_file_arg, index_stream);
+
 		tribble::cst_type cst;
+		std::cerr << "Constucting CST..." << std::endl;
 		sdsl::construct(cst, args_info.superstring_file_arg, 1);
-		sdsl::serialize(cst, std::cout);
+		std::cerr << "Serializing..." << std::endl;
+		sdsl::serialize(cst, index_stream);
 	}
 	else if (args_info.verify_superstring_given)
 	{
@@ -46,7 +65,7 @@ int main(int argc, char **argv)
 		std::cerr << "ERROR: No mode given." << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	
+
 	// Not reached in case args_info.verify_superstring_given
 	// since pthread_exit() is eventually called in verify_superstring().
 	return EXIT_SUCCESS;

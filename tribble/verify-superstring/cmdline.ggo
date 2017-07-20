@@ -22,9 +22,12 @@ modeoption	"create-index"			C	"Create the index"																										mode =
 modeoption	"superstring-file"		s	"Specify the location of the superstring file"									string	typestr = "filename"			mode = "Create index"			required
 
 modeoption	"verify-superstring"	F	"Find the shortest common superstring"																					mode = "Verify superstring"		required
-modeoption	"index-file"			i	"Specify the location of the index file"										string	typestr = "filename"			mode = "Verify superstring"		required
 modeoption	"source-file"			f	"Specify the location of the source file"										string	typestr = "filename"			mode = "Verify superstring"		required
 modeoption	"source-format"			-	"Specify the source file format (default: FASTA)"	values = "FASTA", "text"	enum	typestr = "format"				mode = "Verify superstring"		optional	default = "FASTA"
+
+text "\n"
+text " Common options:"
+option		"index-file"			i	"Specify the location of the index file"										string	typestr = "filename"											required
 
 text "Examples:
     Create an index and output the seriaized data structure.
