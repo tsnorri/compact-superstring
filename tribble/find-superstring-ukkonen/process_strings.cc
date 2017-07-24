@@ -28,7 +28,8 @@ namespace tribble {
 	// Create L(s) for each state.
 	void fill_l_lists(
 		state_ptr_vector_type const &final_states,
-		index_vector_map_type &dst
+		l_map_type &dst,
+		l_inv_map_type &inv_dst
 	)
 	{
 		timer timer;
@@ -37,11 +38,17 @@ namespace tribble {
 		for (auto state_ptr : final_states)
 		{
 			auto const string_idx(state_ptr->string_index());
+			auto inv_list(inv_dst[string_idx]);
 			while (state_ptr)
 			{
 				auto const state_idx(state_ptr->index());
 				auto &l_list(dst[state_idx]);
 				l_list.push_back(string_idx);
+				
+				// Inverse.
+				auto it(--l_list.cend());
+				inv_list.emplace_back(l_list, std::move(it));
+				
 				state_ptr = state_ptr->parent();
 			}
 
@@ -118,8 +125,11 @@ namespace tribble {
 		state_ptr_vector_type const &final_states_bfs(trie.get_final_states_in_bfs_order());
 		state_ptr_vector_type const &all_states_bfs(trie.get_states_in_bfs_order());
 	
-		index_vector_map_type l_map(state_count);
-		fill_l_lists(final_states_bfs, l_map);
+		// Lists of supporters by state.
+		l_map_type l_map(state_count);
+		// Lists of states (iterators) by supported string.
+		l_inv_map_type l_inv_map(string_count);
+		fill_l_lists(final_states_bfs, l_map, l_inv_map);
 		
 		if (DEBUGGING_OUTPUT)
 		{
@@ -136,7 +146,7 @@ namespace tribble {
 		}
 	
 		// Initial values for P(s), FIRST and LAST (1)
-		index_ll_map_type p_map(state_count);
+		p_map_type p_map(state_count);
 		index_vector_type first, last;
 		first.resize(string_count);
 		last.resize(string_count);
@@ -178,7 +188,7 @@ namespace tribble {
 			std::cerr << " finished in " << timer.ms_elapsed() << " ms." << std::endl;
 		}
 	
-		sdsl::bit_vector processed_strings(trie.num_keywords(), 0);
+		//sdsl::bit_vector processed_strings(trie.num_keywords(), 0);
 	
 		// Main loop of the algorithm (3)
 		{
@@ -191,7 +201,7 @@ namespace tribble {
 				
 				if (0 == state_idx % TRIBBLE_LOG_INTERVAL)
 					std::cerr << ' ' << state_idx << std::flush;
-
+				
 				if (TRIBBLE_LOG_INTERVAL <= p_ll.size())
 					std::cerr << " (" << p_ll.size() << ')' << std::flush;
 				
@@ -203,25 +213,50 @@ namespace tribble {
 					{
 						if (TRIBBLE_LOG_INTERVAL <= list_indices_size)
 							std::cerr << " [" << list_indices_size << ']' << std::flush;
-
+						
 						// (5) Get string indices by state.
 						auto const &l_list(l_map[state_idx]);
-						for (auto const string_idx : l_list)
+						auto it(l_list.cbegin());
+						auto const end(l_list.cend());
+						while (it != end)
 						{
+							auto const string_idx(*it);
+							
 							if (DEBUGGING_OUTPUT)
 							{
 								std::cerr << "First: ";
-								std::cerr << boost::algorithm::join(first | boost::adaptors::transformed(static_cast <std::string(*)(size_t)>(std::to_string)), ", ") << std::endl;
-						
+								std::cerr
+								<< boost::algorithm::join(
+									first |
+									boost::adaptors::transformed(
+										static_cast <std::string(*)(size_t)>(std::to_string)
+									),
+									", "
+								)
+								<< std::endl;
+								
 								std::cerr << "Last: ";
-								std::cerr << boost::algorithm::join(last | boost::adaptors::transformed(static_cast <std::string(*)(size_t)>(std::to_string)), ", ") << std::endl;
+								std::cerr
+								<< boost::algorithm::join(
+									last |
+									boost::adaptors::transformed(
+										static_cast <std::string(*)(size_t)>(std::to_string)
+									),
+									", "
+								)
+								<< std::endl;
 							}
 							
 							if (0 == p_list.indices.size())
+							{
+								++it;
 								break;
+							}
 							
+#if 0
 							if (processed_strings[string_idx])
 								continue;
+#endif
 							
 							p_list.indices.reset();
 						
@@ -231,7 +266,10 @@ namespace tribble {
 							if (first[ii] == string_idx)
 							{
 								if (1 == p_list.indices.size())
+								{
+									++it;
 									continue; // Continue iterating l_list.
+								}
 								
 								p_list.indices.advance();
 								auto const i_idx(p_list.indices.current());
@@ -253,12 +291,17 @@ namespace tribble {
 								dst[ii] = ns;
 							}
 							
-							// (10)
-							processed_strings[string_idx] = true;
-							
 							// (12), (13)
 							first[last[string_idx]] = first[ii];
 							last[first[ii]] = last[string_idx];
+							
+							// Increment it now since step (10) causes it to be invalidated.
+							++it;
+							
+							// (10)
+							//processed_strings[string_idx] = true;
+							for (auto &pos : l_inv_map[string_idx])
+								pos.list->erase(pos.iterator);
 						}
 					}
 				}

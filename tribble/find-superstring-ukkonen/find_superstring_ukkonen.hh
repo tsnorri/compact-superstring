@@ -62,10 +62,28 @@ namespace tribble {
 	typedef aho_corasick::basic_trie <char, transition_map>				trie_type;
 	typedef std::string													string_type;
 	typedef std::vector <string_type>									string_vector_type;
+	typedef std::vector <uint8_t>										char_map_type;
 	typedef std::vector <trie_type::state_ptr_type>						state_map_type;
 	typedef std::vector <std::size_t>									index_vector_type;
 	typedef std::vector <index_vector_type>								index_vector_map_type;
-	typedef std::vector <uint8_t>										char_map_type;
+	typedef std::list <std::size_t>										l_list_type;
+	typedef std::vector <l_list_type>									l_map_type;;
+	
+	struct l_map_position
+	{
+		l_list_type					*list{nullptr};
+		l_list_type::const_iterator	iterator;
+		
+		l_map_position() = default;
+		
+		l_map_position(l_list_type &list_, l_list_type::const_iterator &&iterator_):
+			list(&list_),
+			iterator(std::move(iterator_))
+		{
+		}
+	};
+	
+	typedef std::vector <std::vector <l_map_position>>					l_inv_map_type;
 	
 	struct index_list
 	{
@@ -86,7 +104,7 @@ namespace tribble {
 		{
 		}
 	};
-	typedef std::vector <std::list <index_list>>						index_ll_map_type;
+	typedef std::vector <std::list <index_list>>						p_map_type;
 			
 	typedef std::deque <trie_type::state_ptr_type>						state_ptr_queue_type;
 	typedef std::vector <trie_type::state_ptr_type>						state_ptr_vector_type;
